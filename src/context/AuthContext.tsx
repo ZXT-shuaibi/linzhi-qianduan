@@ -43,6 +43,7 @@ const readStoredTokens = (): AuthTokens | null => {
   if (typeof window === "undefined") {
     return null;
   }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -58,15 +59,18 @@ const persistTokens = (tokens: AuthTokens | null) => {
   if (typeof window === "undefined") {
     return;
   }
+
   if (!tokens) {
     localStorage.removeItem(STORAGE_KEY);
     return;
   }
+
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
 };
 
 const readStoredUser = (): AuthenticatedUser | null => {
   if (typeof window === "undefined") return null;
+
   try {
     const raw = localStorage.getItem(USER_STORAGE_KEY);
     if (!raw) return null;
@@ -78,10 +82,12 @@ const readStoredUser = (): AuthenticatedUser | null => {
 
 const persistUser = (user: AuthenticatedUser | null) => {
   if (typeof window === "undefined") return;
+
   if (!user) {
     localStorage.removeItem(USER_STORAGE_KEY);
     return;
   }
+
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
 };
 
@@ -90,6 +96,7 @@ const parseInstantToMillis = (value: string): number => {
   if (!Number.isNaN(numeric)) {
     return numeric > 1e12 ? numeric : numeric * 1000;
   }
+
   const timestamp = Date.parse(value);
   return Number.isNaN(timestamp) ? Date.now() + 10 * 60 * 1000 : timestamp;
 };
@@ -172,6 +179,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.warn("注销请求失败，继续清理本地状态", error);
       }
     }
+
     setTokens(null);
     setUser(null);
     persistTokens(null);
@@ -182,6 +190,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!tokens) {
       return;
     }
+
     try {
       if (Date.now() < tokens.expiresAt - 5_000) {
         return;
@@ -206,6 +215,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!tokens) {
       return;
     }
+
     const timer = window.setInterval(() => {
       void refresh();
     }, 60_000);

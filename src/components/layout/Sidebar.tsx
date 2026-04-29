@@ -1,9 +1,18 @@
 import { NavLink } from "react-router-dom";
-import { CreateIcon, HomeIcon, ProfileIcon, SearchIcon, SparkIcon, StudyIcon } from "@/components/icons/Icon";
+import {
+  CreateIcon,
+  HomeIcon,
+  ProfileIcon,
+  SearchIcon,
+  SparkIcon,
+  StudyIcon
+} from "@/components/icons/Icon";
 import styles from "./Sidebar.module.css";
 
 const navItems = [
   { to: "/", label: "首页", Icon: HomeIcon },
+  { to: "/discover", label: "附近", Icon: SearchIcon },
+  { to: "/market", label: "市集", Icon: StudyIcon },
   { to: "/search", label: "搜索", Icon: SearchIcon },
   { to: "/create", label: "创作", Icon: CreateIcon },
   { to: "/learn", label: "学习", Icon: StudyIcon },
@@ -31,7 +40,7 @@ const Sidebar = () => {
       </nav>
       <div className={styles.divider} />
       <div className={styles.footer}>
-        <span>知光</span>
+        <span>邻知</span>
         <div>让知识发光</div>
       </div>
     </aside>

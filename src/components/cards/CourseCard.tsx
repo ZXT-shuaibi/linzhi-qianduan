@@ -62,12 +62,10 @@ const CourseCard = ({
   summary,
   tags,
   authorTags,
-  isFree = true,
   isTop,
   teacher,
   stats,
   coverImage,
-  layout = "vertical",
   showPlayBadge,
   footerExtra,
   to,
@@ -83,95 +81,103 @@ const CourseCard = ({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const loadDetailIfNeeded = async (id: string) => {
+  const loadDetailIfNeeded = async (postId: string) => {
     if (detail || menuLoading) return;
+
     try {
       setMenuLoading(true);
-      const d = await knowpostService.detail(id, tokens?.accessToken ?? undefined);
-      setDetail(d);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "加载详情失败";
-      setMenuError(msg);
+      const response = await knowpostService.detail(postId, tokens?.accessToken ?? undefined);
+      setDetail(response);
+    } catch (error) {
+      setMenuError(error instanceof Error ? error.message : "加载详情失败");
     } finally {
       setMenuLoading(false);
     }
   };
 
-  const toggleMenu = async (id: string) => {
-    const next = !menuOpen;
-    setMenuOpen(next);
-    if (next) {
-      await loadDetailIfNeeded(id);
+  const toggleMenu = async (postId: string) => {
+    const nextOpen = !menuOpen;
+    setMenuOpen(nextOpen);
+    if (nextOpen) {
+      await loadDetailIfNeeded(postId);
     }
   };
 
-  // 点击卡片其他区域收起菜单
   useEffect(() => {
     if (!menuOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const btn = buttonRef.current;
+
+    const onDocumentClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const button = buttonRef.current;
       const menu = menuRef.current;
       if (menu && menu.contains(target)) return;
-      if (btn && btn.contains(target)) return;
+      if (button && button.contains(target)) return;
       setMenuOpen(false);
     };
-    document.addEventListener("mousedown", onDocClick, true);
-    return () => document.removeEventListener("mousedown", onDocClick, true);
+
+    document.addEventListener("mousedown", onDocumentClick, true);
+    return () => document.removeEventListener("mousedown", onDocumentClick, true);
   }, [menuOpen]);
 
-  const handleSetTop = async (id: string, isTop: boolean) => {
+  const requireLogin = () => {
+    setMenuError("请先登录");
+  };
+
+  const handleSetTop = async (postId: string, top: boolean) => {
+    if (!tokens?.accessToken) {
+      requireLogin();
+      return;
+    }
+
     try {
-      if (!tokens?.accessToken) {
-        setMenuError("请先登录");
-        return;
-      }
       setMenuLoading(true);
-      await knowpostService.setTop(id, isTop, tokens.accessToken);
-      setDetail(prev => prev ? { ...prev, isTop } : prev);
+      await knowpostService.setTop(postId, top, tokens.accessToken);
+      setDetail((current) => (current ? { ...current, isTop: top } : current));
       setMenuOpen(false);
-      onChanged?.("top", { isTop });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "设置置顶失败";
-      setMenuError(msg);
+      onChanged?.("top", { isTop: top });
+    } catch (error) {
+      setMenuError(error instanceof Error ? error.message : "设置置顶失败");
     } finally {
       setMenuLoading(false);
     }
   };
 
-  const handleSetVisibility = async (id: string, visible: VisibleScope) => {
+  const handleSetVisibility = async (postId: string, visible: VisibleScope) => {
+    if (!tokens?.accessToken) {
+      requireLogin();
+      return;
+    }
+
     try {
-      if (!tokens?.accessToken) {
-        setMenuError("请先登录");
-        return;
-      }
       setMenuLoading(true);
-      await knowpostService.setVisibility(id, visible, tokens.accessToken);
-      setDetail(prev => prev ? { ...prev, visible } : prev);
+      await knowpostService.setVisibility(postId, visible, tokens.accessToken);
+      setDetail((current) => (current ? { ...current, visible } : current));
       setMenuOpen(false);
       onChanged?.("visibility", { visible });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "设置可见性失败";
-      setMenuError(msg);
+    } catch (error) {
+      setMenuError(error instanceof Error ? error.message : "设置可见性失败");
     } finally {
       setMenuLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (postId: string) => {
+    if (!tokens?.accessToken) {
+      requireLogin();
+      return;
+    }
+
+    if (!window.confirm("确认删除这篇帖子吗？删除后不可恢复。")) {
+      return;
+    }
+
     try {
-      if (!tokens?.accessToken) {
-        setMenuError("请先登录");
-        return;
-      }
-      if (!window.confirm("确认删除这篇知文吗？删除后不可恢复")) return;
       setMenuLoading(true);
-      await knowpostService.remove(id, tokens.accessToken);
+      await knowpostService.remove(postId, tokens.accessToken);
       setMenuOpen(false);
       onChanged?.("delete");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "删除失败";
-      setMenuError(msg);
+    } catch (error) {
+      setMenuError(error instanceof Error ? error.message : "删除失败");
     } finally {
       setMenuLoading(false);
     }
@@ -179,8 +185,6 @@ const CourseCard = ({
 
   const content = (
     <>
-      {/* 取消免费标识展示，保持卡片简洁 */}
-      {/* 图片置于卡片顶部，保持原始比例；播放标识覆盖在封面中央 */}
       {coverImage ? (
         <div className={styles.coverWrap}>
           <img className={styles.cover} src={coverImage} alt={title} loading="lazy" />
@@ -196,12 +200,10 @@ const CourseCard = ({
 
       <div className={styles.content}>
         <h3 className={styles.title}>{title}</h3>
-        {summary.trim() ? (
-          <p className={styles.description}>{renderEmHighlightedText(summary)}</p>
-        ) : null}
+        {summary.trim() ? <p className={styles.description}>{renderEmHighlightedText(summary)}</p> : null}
         {tags?.length ? (
           <div className={styles.tagGroups}>
-            {tags.map(tag => (
+            {tags.map((tag) => (
               <Tag key={tag}>#{tag}</Tag>
             ))}
           </div>
@@ -219,7 +221,7 @@ const CourseCard = ({
             <span className={styles.teacherName}>{teacher.name}</span>
             {authorTags?.length ? (
               <div className={styles.authorTags}>
-                {authorTags.map(tag => (
+                {authorTags.map((tag) => (
                   <span key={tag} className={styles.authorTag}>#{tag}</span>
                 ))}
               </div>
@@ -241,9 +243,7 @@ const CourseCard = ({
         )}
       </div>
 
-      {footerExtra ? (
-        <div className={styles.footerExtra}>{footerExtra}</div>
-      ) : null}
+      {footerExtra ? <div className={styles.footerExtra}>{footerExtra}</div> : null}
     </>
   );
 
@@ -252,30 +252,60 @@ const CourseCard = ({
       {(detail?.isTop ?? isTop) ? (
         <div className={styles.topBadge}><span>置顶</span></div>
       ) : null}
+
       {editable ? (
         <>
-          <button ref={buttonRef} type="button" className={styles.menuButton} onClick={() => toggleMenu(id)} aria-haspopup="true" aria-expanded={menuOpen} title="编辑">
+          <button
+            ref={buttonRef}
+            type="button"
+            className={styles.menuButton}
+            onClick={() => void toggleMenu(id)}
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+            title="编辑"
+          >
             ⋯
           </button>
           {menuOpen ? (
             <div ref={menuRef} className={styles.menuList} role="menu">
               {menuError ? <div style={{ color: "var(--color-danger)", padding: 6 }}>{menuError}</div> : null}
-              <button type="button" className={styles.menuItem} onClick={() => handleSetTop(id, !(detail?.isTop))} disabled={menuLoading}>
+              <button
+                type="button"
+                className={styles.menuItem}
+                onClick={() => void handleSetTop(id, !(detail?.isTop))}
+                disabled={menuLoading}
+              >
                 {detail?.isTop ? "取消置顶" : "置顶"}
               </button>
-              <button type="button" className={styles.menuItem} onClick={() => handleSetVisibility(id, "public")} disabled={menuLoading}>
+              <button
+                type="button"
+                className={styles.menuItem}
+                onClick={() => void handleSetVisibility(id, "public")}
+                disabled={menuLoading}
+              >
                 设为公开
               </button>
-              <button type="button" className={styles.menuItem} onClick={() => handleSetVisibility(id, "private")} disabled={menuLoading}>
+              <button
+                type="button"
+                className={styles.menuItem}
+                onClick={() => void handleSetVisibility(id, "private")}
+                disabled={menuLoading}
+              >
                 设为私密
               </button>
-              <button type="button" className={clsx(styles.menuItem, styles.menuDanger)} onClick={() => handleDelete(id)} disabled={menuLoading}>
+              <button
+                type="button"
+                className={clsx(styles.menuItem, styles.menuDanger)}
+                onClick={() => void handleDelete(id)}
+                disabled={menuLoading}
+              >
                 删除
               </button>
             </div>
           ) : null}
         </>
       ) : null}
+
       {to ? <Link to={to}>{content}</Link> : content}
     </article>
   );

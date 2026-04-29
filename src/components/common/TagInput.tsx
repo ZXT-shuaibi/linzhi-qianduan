@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent, ChangeEvent } from "react";
+import { useState, type ChangeEvent, type KeyboardEvent } from "react";
 import styles from "./TagInput.module.css";
 
 type TagInputProps = {
@@ -13,32 +13,31 @@ const TagInput = ({ id, value, onChange, placeholder, className }: TagInputProps
   const [text, setText] = useState("");
 
   const addTag = (raw: string) => {
-    const t = raw.trim();
-    if (!t) return;
-    if (value.includes(t)) {
+    const next = raw.trim();
+    if (!next) return;
+    if (value.includes(next)) {
       setText("");
       return;
     }
-    onChange([...value, t]);
+    onChange([...value, next]);
     setText("");
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
       addTag(text);
-    } else if (e.key === "Backspace" && text === "" && value.length > 0) {
-      // 便捷删除最后一个标签
+    } else if (event.key === "Backspace" && text === "" && value.length > 0) {
       onChange(value.slice(0, -1));
     }
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setText(e.target.value);
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setText(event.target.value);
   };
 
-  const removeTag = (t: string) => {
-    onChange(value.filter((x) => x !== t));
+  const removeTag = (target: string) => {
+    onChange(value.filter((item) => item !== target));
   };
 
   return (
@@ -49,12 +48,12 @@ const TagInput = ({ id, value, onChange, placeholder, className }: TagInputProps
         value={text}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder ?? "输入标签后按回车"}
+        placeholder={placeholder ?? "输入标签后按回车添加"}
       />
-      {value.length > 0 && (
+      {value.length > 0 ? (
         <div className={styles.chips}>
-          {value.map((tag, idx) => (
-            <span className={styles.chip} key={`${tag}-${idx}`}>
+          {value.map((tag, index) => (
+            <span className={styles.chip} key={`${tag}-${index}`}>
               <span className={styles.chipText}>{tag}</span>
               <button
                 type="button"
@@ -67,7 +66,7 @@ const TagInput = ({ id, value, onChange, placeholder, className }: TagInputProps
             </span>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

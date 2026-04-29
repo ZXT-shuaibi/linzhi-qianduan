@@ -36,11 +36,13 @@ const readStoredAccessToken = (): string | null => {
   if (typeof window === "undefined") {
     return null;
   }
+
   try {
     const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (!raw) {
       return null;
     }
+
     const parsed = JSON.parse(raw) as { accessToken?: string };
     return parsed.accessToken ?? null;
   } catch {

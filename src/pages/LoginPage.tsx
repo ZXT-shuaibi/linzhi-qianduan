@@ -38,8 +38,7 @@ const LoginPage = () => {
       await login(payload);
       navigate(from, { replace: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "登录失败，请稍后重试";
-      setError(message);
+      setError(err instanceof Error ? err.message : "登录失败，请稍后重试");
     } finally {
       setSubmitting(false);
     }
@@ -52,7 +51,7 @@ const LoginPage = () => {
       <div className={styles.card}>
         <div className={styles.titleBlock}>
           <h1 className={styles.title}>欢迎回来</h1>
-          <p className={styles.subtitle}>登录邻里知光，继续浏览社区知识与动态</p>
+          <p className={styles.subtitle}>登录邻知，继续浏览社区知识与动态</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>

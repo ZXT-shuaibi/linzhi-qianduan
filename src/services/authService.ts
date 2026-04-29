@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
+import { mapAuthenticatedUser, mapProfileResponse, type ProfileApiPayload } from "@/services/mappers/profileMappers";
 import type {
-  AuthenticatedUser,
   LoginRequest,
   LoginResponse,
   LogoutRequest,
@@ -10,27 +10,9 @@ import type {
   SendCodeRequest,
   SendCodeResponse
 } from "@/types/auth";
-import type { ProfileResponse } from "@/types/profile";
 
 const AUTH_PREFIX = "/api/v1/auth";
 const PROFILE_PREFIX = "/api/v1/profile";
-
-const mapProfileToAuthenticatedUser = (profile: ProfileResponse): AuthenticatedUser => ({
-  id: Number(profile.userId),
-  userId: profile.userId,
-  phone: profile.phone ?? null,
-  account: profile.account ?? null,
-  nickname: profile.nickname,
-  avatar: profile.avatar ?? null,
-  bio: profile.bio ?? null,
-  gender: profile.gender,
-  birthday: profile.birthday ?? null,
-  school: profile.school ?? null,
-  tags: profile.tags ?? [],
-  skills: profile.tags ?? [],
-  tagJson: JSON.stringify(profile.tags ?? []),
-  self: profile.self
-});
 
 export const authService = {
   sendCode: (payload: SendCodeRequest) =>
@@ -59,10 +41,10 @@ export const authService = {
     }),
 
   fetchCurrentUser: async (accessToken: string) => {
-    const profile = await apiFetch<ProfileResponse>(`${PROFILE_PREFIX}/me`, {
+    const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`, {
       accessToken
     });
-    return mapProfileToAuthenticatedUser(profile);
+    return mapAuthenticatedUser(mapProfileResponse(response));
   },
 
   refresh: (refreshToken: string) =>

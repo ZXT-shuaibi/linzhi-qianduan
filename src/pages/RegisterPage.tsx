@@ -40,6 +40,7 @@ const RegisterPage = () => {
       setError("请先填写手机号");
       return;
     }
+
     setError(null);
     setMessage(null);
     setSendingCode(true);
@@ -51,8 +52,7 @@ const RegisterPage = () => {
       setMessage(`验证码已发送，开发环境验证码为：${result.code}`);
       setCountdown(Math.max(1, result.expireSeconds ?? 60));
     } catch (err) {
-      const info = err instanceof Error ? err.message : "验证码发送失败";
-      setError(info);
+      setError(err instanceof Error ? err.message : "验证码发送失败");
     } finally {
       setSendingCode(false);
     }
@@ -78,8 +78,7 @@ const RegisterPage = () => {
         navigate(from, { replace: true });
       }, 400);
     } catch (err) {
-      const info = err instanceof Error ? err.message : "注册失败，请稍后重试";
-      setError(info);
+      setError(err instanceof Error ? err.message : "注册失败，请稍后重试");
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +96,7 @@ const RegisterPage = () => {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.titleBlock}>
-          <h1 className={styles.title}>加入邻里知光</h1>
+          <h1 className={styles.title}>加入邻知</h1>
           <p className={styles.subtitle}>创建你的社区知识名片，与更多邻里建立连接</p>
         </div>
 

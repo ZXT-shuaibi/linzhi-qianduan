@@ -13,8 +13,18 @@ type SearchBarProps = {
   onSuggestionClick?: (value: string) => void;
 };
 
-const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜索", suggestions = [], suggestLoading = false, onSuggestionClick }: SearchBarProps) => {
+const SearchBar = ({
+  placeholder,
+  value,
+  onChange,
+  onSubmit,
+  buttonLabel = "搜索",
+  suggestions = [],
+  suggestLoading = false,
+  onSuggestionClick
+}: SearchBarProps) => {
   const [focused, setFocused] = useState(false);
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange(event.target.value);
   };
@@ -29,8 +39,8 @@ const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜�
         onChange={handleChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 120)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
             onSubmit?.();
           }
         }}
@@ -42,19 +52,19 @@ const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜�
       {focused && (value?.trim()?.length ?? 0) > 0 && (
         <div className={styles.dropdown}>
           {suggestLoading ? (
-            <div className={styles.dropdownEmpty}>加载中…</div>
+            <div className={styles.dropdownEmpty}>加载中...</div>
           ) : suggestions?.length ? (
-            suggestions.map((s) => (
+            suggestions.map((item) => (
               <div
-                key={s}
+                key={item}
                 className={styles.dropdownItem}
-                onMouseDown={() => onSuggestionClick?.(s)}
+                onMouseDown={() => onSuggestionClick?.(item)}
               >
-                {s}
+                {item}
               </div>
             ))
           ) : (
-            <div className={styles.dropdownEmpty}>无联想结果</div>
+            <div className={styles.dropdownEmpty}>暂无联想结果</div>
           )}
         </div>
       )}

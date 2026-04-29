@@ -1,12 +1,11 @@
 import { apiFetch } from "./apiClient";
+import { mapFeedPreview, mapPostDetail } from "@/services/mappers/postMappers";
 import type {
   ConfirmContentRequest,
   CounterResponse,
   CreateDraftResponse,
   FavActionResponse,
-  FeedItem,
   FeedResponse,
-  KnowpostDetailResponse,
   LikeActionResponse,
   PresignRequest,
   PresignResponse,
@@ -29,7 +28,6 @@ type FeedItemApi = {
     userId?: string | null;
     nickname?: string | null;
     avatar?: string | null;
-    socialCounters?: unknown;
   };
   likeCount?: number | null;
   favoriteCount?: number | null;
@@ -40,7 +38,7 @@ type FeedItemApi = {
 };
 
 type FeedApiResponse = {
-  items: FeedItemApi[];
+  items?: FeedItemApi[];
   page?: {
     page: number;
     size: number;
@@ -60,7 +58,6 @@ type PostDetailApi = {
     userId?: string | null;
     nickname?: string | null;
     avatar?: string | null;
-    tags?: string[];
   };
   likeCount?: number | null;
   favoriteCount?: number | null;
@@ -72,45 +69,31 @@ type PostDetailApi = {
   publishedAt?: string | null;
 };
 
-const mapFeedItem = (item: FeedItemApi): FeedItem => ({
-  id: item.postId,
-  title: item.title,
-  description: item.summary ?? "",
-  coverImage: item.coverUrl ?? undefined,
-  tags: item.tags ?? [],
-  tagJson: JSON.stringify(item.author?.tags ?? []),
-  authorAvatar: item.author?.avatar ?? undefined,
-  authorAvator: item.author?.avatar ?? undefined,
-  authorNickname: item.author?.nickname ?? "匿名用户",
-  authorId: item.author?.userId ? Number(item.author.userId) : undefined,
-  likeCount: item.likeCount ?? 0,
-  favoriteCount: item.favoriteCount ?? 0,
-  liked: item.liked ?? false,
-  faved: item.faved ?? false,
-  isTop: item.isTop ?? false,
-  publishedAt: item.publishedAt ?? undefined
-});
-
-const mapDetail = (item: PostDetailApi): KnowpostDetailResponse => ({
-  id: item.postId,
-  title: item.title,
-  description: item.summary ?? "",
-  contentUrl: item.contentUrl,
-  images: item.imageUrls ?? [],
-  tags: item.tags ?? [],
-  authorAvatar: item.author?.avatar ?? undefined,
-  authorNickname: item.author?.nickname ?? "匿名用户",
-  authorId: item.author?.userId ? Number(item.author.userId) : undefined,
-  authorTagJson: JSON.stringify(item.author?.tags ?? []),
-  likeCount: item.likeCount ?? 0,
-  favoriteCount: item.favoriteCount ?? 0,
-  liked: item.liked ?? false,
-  faved: item.faved ?? false,
-  isTop: item.isTop ?? false,
-  visible: item.visibility ?? "public",
-  type: item.type ?? "post",
-  publishTime: item.publishedAt ?? undefined
-});
+const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) =>
+  ({
+    items: (response.items ?? []).map((item) =>
+      mapFeedPreview({
+        id: item.postId,
+        title: item.title,
+        description: item.summary,
+        coverImage: item.coverUrl,
+        tags: item.tags,
+        authorAvatar: item.author?.avatar,
+        authorNickname: item.author?.nickname,
+        authorId: item.author?.userId,
+        likeCount: item.likeCount,
+        favoriteCount: item.favoriteCount,
+        liked: item.liked,
+        faved: item.faved,
+        isTop: item.isTop,
+        publishedAt: item.publishedAt
+      })
+    ),
+    page: response.page?.page ?? page,
+    size: response.page?.size ?? size,
+    hasMore: response.page?.hasMore ?? false,
+    cacheLayer: response.cacheLayer
+  }) satisfies FeedResponse;
 
 export const knowpostService = {
   createDraft: async () => {
@@ -189,32 +172,52 @@ export const knowpostService = {
 
   feed: async (page = 1, size = 20) => {
     const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`);
-    return {
-      items: (response.items ?? []).map(mapFeedItem),
-      page: response.page?.page ?? page,
-      size: response.page?.size ?? size,
-      hasMore: response.page?.hasMore ?? false,
-      cacheLayer: response.cacheLayer
-    } satisfies FeedResponse;
+    return buildFeedResponse(response, page, size);
+  },
+
+  homeFeed: async (page = 1, size = 20, params?: { lat?: number; lng?: number; geoHash?: string }) => {
+    const usp = new URLSearchParams({
+      page: String(page),
+      size: String(size)
+    });
+    if (typeof params?.lat === "number") usp.set("lat", String(params.lat));
+    if (typeof params?.lng === "number") usp.set("lng", String(params.lng));
+    if (params?.geoHash) usp.set("geoHash", params.geoHash);
+
+    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`);
+    return buildFeedResponse(response, page, size);
   },
 
   mine: async (page = 1, size = 20, accessToken: string) => {
     const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/mine?page=${page}&size=${size}`, {
       accessToken
     });
-    return {
-      items: (response.items ?? []).map(mapFeedItem),
-      page: response.page?.page ?? page,
-      size: response.page?.size ?? size,
-      hasMore: response.page?.hasMore ?? false
-    } satisfies FeedResponse;
+    return buildFeedResponse(response, page, size);
   },
 
   detail: async (id: string, accessToken?: string) => {
     const response = await apiFetch<PostDetailApi>(`${POSTS_PREFIX}/${id}`, {
       accessToken: accessToken ?? null
     });
-    return mapDetail(response);
+    return mapPostDetail({
+      id: response.postId,
+      title: response.title,
+      description: response.summary,
+      contentUrl: response.contentUrl,
+      images: response.imageUrls ?? [],
+      tags: response.tags,
+      authorAvatar: response.author?.avatar,
+      authorNickname: response.author?.nickname,
+      authorId: response.author?.userId,
+      likeCount: response.likeCount,
+      favoriteCount: response.favoriteCount,
+      liked: response.liked,
+      faved: response.faved,
+      isTop: response.isTop,
+      visible: response.visibility,
+      type: response.type,
+      publishedAt: response.publishedAt
+    });
   },
 
   suggestDescription: (content: string, accessToken: string) =>
@@ -288,9 +291,6 @@ export const knowpostService = {
   }
 };
 
-/**
- * 直传到预签名 URL。
- */
 export async function uploadToPresigned(putUrl: string, headers: Record<string, string>, file: File) {
   const response = await fetch(putUrl, {
     method: "PUT",

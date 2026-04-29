@@ -101,12 +101,12 @@
   }
 }
 
-/* 让全局 Select 在本页与 input 高度/宽度一致 */
+/* 让全局下拉组件在本页与输入框尺寸一致 */
 .selectCompact :global(.box) {
   width: 100%;
-  padding: 14px 18px; /* 与 .input 一致 */
-  font-size: 14px; /* 与 .input 一致 */
-  height: 44px !important; /* 与 .input 一致，强制覆盖 */
+  padding: 14px 18px; /* 与输入框样式一致 */
+  font-size: 14px; /* 与输入框样式一致 */
+  height: 44px !important; /* 与输入框样式一致，并强制覆盖 */
   box-sizing: border-box;
 }
 
@@ -116,5 +116,5 @@
   color: var(--color-primary-strong);
 }
 .selectCompact :global(.label) {
-  margin-bottom: 0; /* 由 .field 的 gap 控制间距 */
+  margin-bottom: 0; /* 间距由字段容器统一控制 */
 }

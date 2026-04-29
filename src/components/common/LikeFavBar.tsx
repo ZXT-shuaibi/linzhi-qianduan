@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, type MouseEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { knowpostService } from "@/services/knowpostService";
 import { HeartIcon, BookmarkIcon } from "@/components/icons/Icon";
@@ -7,17 +7,17 @@ import styles from "./LikeFavBar.module.css";
 
 type LikeFavBarProps = {
   entityId: string;
-  entityType?: string; // default: "knowpost"
+  entityType?: string;
   initialCounts?: { like: number; fav: number };
   initialState?: { liked?: boolean; faved?: boolean };
-  fetchCounts?: boolean; // if true, fetch counts on mount (requires auth per current policy)
+  fetchCounts?: boolean;
   compact?: boolean;
   className?: string;
 };
 
 const LikeFavBar = ({
   entityId,
-  entityType = "knowpost",
+  entityType = "post",
   initialCounts,
   initialState,
   fetchCounts = false,
@@ -39,85 +39,93 @@ const LikeFavBar = ({
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      if (!fetchCounts) return;
-      if (!tokens?.accessToken) return; // 当前策略：需鉴权
+      if (!fetchCounts || !tokens?.accessToken) return;
       try {
-        const resp = await knowpostService.counters(entityId, tokens.accessToken, entityType);
+        const response = await knowpostService.counters(entityId, tokens.accessToken, entityType);
         if (!cancelled) {
-          const like = resp.counts?.like ?? 0;
-          const fav = resp.counts?.fav ?? 0;
-          setLikeCount(typeof like === "number" ? like : 0);
-          setFavCount(typeof fav === "number" ? fav : 0);
+          setLikeCount(response.counts?.like ?? 0);
+          setFavCount(response.counts?.fav ?? 0);
         }
       } catch {
-        // 忽略计数加载错误，保持初值
+        // 计数拉取失败时保留初始值。
       }
     };
-    run();
-    return () => { cancelled = true; };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [entityId, entityType, tokens?.accessToken, fetchCounts]);
 
-  // 当初始状态变更时，同步到本地状态（例如从详情或列表传入）
   useEffect(() => {
     if (typeof initialState?.liked !== "undefined") {
-      setLiked(!!initialState.liked);
+      setLiked(Boolean(initialState.liked));
     }
     if (typeof initialState?.faved !== "undefined") {
-      setFaved(!!initialState.faved);
+      setFaved(Boolean(initialState.faved));
     }
   }, [initialState?.liked, initialState?.faved]);
 
   const mustLogin = () => {
-    navigate("/login", { state: { from: location.pathname } });
+    navigate("/login", {
+      state: { from: location.pathname + location.search + location.hash }
+    });
   };
 
-  const onLikeClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation(); // 避免卡片 Link 导航
+  const onLikeClick = async (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (!tokens?.accessToken) {
       mustLogin();
       return;
     }
     if (loadingLike) return;
+
     setLoadingLike(true);
     try {
       if (!liked) {
-        const resp = await knowpostService.like(entityId, tokens.accessToken, entityType);
-        setLiked(resp.liked);
-        if (resp.changed && resp.liked) setLikeCount((c) => c + 1);
+        const response = await knowpostService.like(entityId, tokens.accessToken, entityType);
+        setLiked(response.liked);
+        if (response.changed && response.liked) {
+          setLikeCount((count) => count + 1);
+        }
       } else {
-        const resp = await knowpostService.unlike(entityId, tokens.accessToken, entityType);
-        setLiked(resp.liked);
-        if (resp.changed && !resp.liked) setLikeCount((c) => Math.max(0, c - 1));
+        const response = await knowpostService.unlike(entityId, tokens.accessToken, entityType);
+        setLiked(response.liked);
+        if (response.changed && !response.liked) {
+          setLikeCount((count) => Math.max(0, count - 1));
+        }
       }
-    } catch {
-      // 可选：提示错误
     } finally {
       setLoadingLike(false);
     }
   };
 
-  const onFavClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const onFavClick = async (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (!tokens?.accessToken) {
       mustLogin();
       return;
     }
     if (loadingFav) return;
+
     setLoadingFav(true);
     try {
       if (!faved) {
-        const resp = await knowpostService.fav(entityId, tokens.accessToken, entityType);
-        setFaved(resp.faved);
-        if (resp.changed && resp.faved) setFavCount((c) => c + 1);
+        const response = await knowpostService.fav(entityId, tokens.accessToken, entityType);
+        setFaved(response.faved);
+        if (response.changed && response.faved) {
+          setFavCount((count) => count + 1);
+        }
       } else {
-        const resp = await knowpostService.unfav(entityId, tokens.accessToken, entityType);
-        setFaved(resp.faved);
-        if (resp.changed && !resp.faved) setFavCount((c) => Math.max(0, c - 1));
+        const response = await knowpostService.unfav(entityId, tokens.accessToken, entityType);
+        setFaved(response.faved);
+        if (response.changed && !response.faved) {
+          setFavCount((count) => Math.max(0, count - 1));
+        }
       }
-    } catch {
-      // 可选：提示错误
     } finally {
       setLoadingFav(false);
     }

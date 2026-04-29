@@ -81,7 +81,7 @@
   color: var(--color-text);
 }
 
-/* Markdown 内容样式 */
+/* 文档正文样式 */
 .markdown {
   line-height: 1.8;
 }
@@ -229,7 +229,7 @@
   cursor: pointer;
 }
 
-/* RAG 问答侧栏 */
+/* 智能问答侧栏 */
 .ragToggle {
   display: inline-flex;
   align-items: center;

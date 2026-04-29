@@ -1,165 +1,200 @@
-import { useEffect, useState } from "react";
-import PostDetailDialog from "../components/PostDetailDialog";
-import { communityMetrics, trendingTopics } from "../data/mockData";
-import { todoApi } from "../services/todoApi";
-import type { FeedPost } from "../types/app";
+import { useEffect, useMemo, useState } from "react";
+import AppLayout from "@/components/layout/AppLayout";
+import MainHeader from "@/components/layout/MainHeader";
+import SectionHeader from "@/components/common/SectionHeader";
+import CourseCard from "@/components/cards/CourseCard";
+import LikeFavBar from "@/components/common/LikeFavBar";
+import AuthStatus from "@/features/auth/AuthStatus";
+import { discoverService } from "@/services/discoverService";
+import type { DiscoverEntityType, DiscoverItem } from "@/types/discover";
+import styles from "./DiscoverPage.module.css";
+import feedStyles from "./HomePage.module.css";
 
-const apiSuggestions = [
-  { endpoint: "GET /feed", description: "社区动态列表" },
-  { endpoint: "POST /post/:id/like", description: "点赞" },
-  { endpoint: "POST /post/:id/favorite", description: "收藏" },
-  { endpoint: "GET /post/:id", description: "帖子详情" }
-];
+const DEFAULT_LOCATION = { lat: 31.2304, lng: 121.4737 };
 
-function DiscoverPage() {
-  const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
-  const [loading, setLoading] = useState(true);
+const formatDistance = (distance?: number | null) => {
+  if (typeof distance !== "number") return "距离未知";
+  if (distance < 1000) return `${Math.round(distance)}m`;
+  return `${(distance / 1000).toFixed(1)}km`;
+};
+
+const DiscoverPage = () => {
+  const [entityType, setEntityType] = useState<DiscoverEntityType>("mixed");
+  const [radius, setRadius] = useState(3000);
+  const [items, setItems] = useState<DiscoverItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [location, setLocation] = useState(DEFAULT_LOCATION);
+  const [locationText, setLocationText] = useState("使用默认坐标（上海）");
+
+  const postItems = useMemo(() => items.filter((item) => item.entityType === "post"), [items]);
+  const merchantItems = useMemo(() => items.filter((item) => item.entityType === "merchant"), [items]);
+
+  const loadNearby = async (coords = location) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await discoverService.nearby({
+        lat: coords.lat,
+        lng: coords.lng,
+        radius,
+        entityType
+      });
+      setItems(response.items);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载附近内容失败");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      const result = await todoApi.getFeed();
-      if (!cancelled) {
-        setPosts(result);
-        setLoading(false);
-      }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void loadNearby(location);
+  }, [entityType, radius]);
 
-  const updatePost = (postId: string, updater: (post: FeedPost) => FeedPost) => {
-    setPosts((current) => current.map((post) => (post.id === postId ? updater(post) : post)));
-    setSelectedPost((current) => (current && current.id === postId ? updater(current) : current));
-  };
+  const locateMe = () => {
+    if (!navigator.geolocation) {
+      setLocationText("当前浏览器不支持定位，已回退到默认坐标");
+      void loadNearby(DEFAULT_LOCATION);
+      return;
+    }
 
-  const toggleLike = (postId: string) => {
-    updatePost(postId, (post) => ({
-      ...post,
-      liked: !post.liked,
-      likes: post.likes + (post.liked ? -1 : 1)
-    }));
-  };
-
-  const toggleFavorite = (postId: string) => {
-    updatePost(postId, (post) => ({
-      ...post,
-      favorited: !post.favorited,
-      favorites: post.favorites + (post.favorited ? -1 : 1)
-    }));
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setLocation(next);
+        setLocationText(`当前位置：${next.lat.toFixed(4)}, ${next.lng.toFixed(4)}`);
+        void loadNearby(next);
+      },
+      () => {
+        setLocationText("定位失败，已回退到默认坐标");
+        void loadNearby(DEFAULT_LOCATION);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }
+    );
   };
 
   return (
-    <>
-      <section className="hero-grid">
-        <article className="hero-panel">
-          <span className="hero-tag">Prototype to Frontend</span>
-          <h2>发现页先用三列结构还原“社区正在发生什么”的氛围。</h2>
-          <p>
-            左边讲氛围，中间给动态流，右边放社区指标和趋势话题。等你给接口文档后，
-            这里只需要替换数据来源，不用再改页面骨架。
-          </p>
-          <div className="metric-row">
-            {communityMetrics.map((metric) => (
-              <div key={metric.label} className="metric-card">
-                <strong>{metric.value}</strong>
-                <span>{metric.label}</span>
+    <AppLayout
+      header={(
+        <MainHeader
+          headline="附近发现"
+          subtitle="接入 linli 的 LBS 发现接口，支持帖子与商家混合探索"
+          rightSlot={<AuthStatus />}
+        />
+      )}
+    >
+      <div className={styles.toolbar}>
+        <div className={styles.filters}>
+          {[
+            { value: "mixed", label: "混合" },
+            { value: "post", label: "帖子" },
+            { value: "merchant", label: "商家" }
+          ].map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              className={`${styles.filterButton} ${entityType === item.value ? styles.filterButtonActive : ""}`}
+              onClick={() => setEntityType(item.value as DiscoverEntityType)}
+            >
+              {item.label}
+            </button>
+          ))}
+          {[1000, 3000, 5000].map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={`${styles.filterButton} ${radius === value ? styles.filterButtonActive : ""}`}
+              onClick={() => setRadius(value)}
+            >
+              {value / 1000}km
+            </button>
+          ))}
+        </div>
+        <button type="button" className="ghost-button" onClick={locateMe}>使用我的位置</button>
+      </div>
+
+      <div className={styles.locationCard}>
+        <strong>定位状态</strong>
+        <span>{locationText}</span>
+      </div>
+
+      {error ? <div className={styles.error}>{error}</div> : null}
+      {loading ? <div className={styles.loading}>正在加载附近内容...</div> : null}
+
+      {postItems.length > 0 ? (
+        <>
+          <SectionHeader title="附近帖子" subtitle="帖子卡片直接复用现有知识内容组件" />
+          <div className={feedStyles.masonry}>
+            {postItems.map((item) => (
+              <div key={item.id} className={feedStyles.masonryItem}>
+                <CourseCard
+                  id={item.id}
+                  title={item.title}
+                  summary={item.summary}
+                  tags={item.tags}
+                  teacher={{ name: item.authorName, avatarUrl: item.authorAvatar ?? undefined }}
+                  coverImage={item.coverUrl ?? undefined}
+                  to={`/post/${item.id}`}
+                  footerExtra={(
+                    <div className={styles.cardFooter}>
+                      <span>{formatDistance(item.distance)}</span>
+                      <LikeFavBar
+                        entityId={item.id}
+                        entityType="post"
+                        compact
+                        initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
+                      />
+                    </div>
+                  )}
+                />
               </div>
             ))}
           </div>
-        </article>
+        </>
+      ) : null}
 
-        <aside className="side-stack">
-          <div className="section-card">
-            <h3>今日趋势</h3>
-            <div className="chip-list">
-              {trendingTopics.map((topic) => (
-                <span key={topic} className="chip">
-                  #{topic}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="section-card">
-            <h3>接口占位说明</h3>
-            <p className="muted">
-              当前动态列表、点赞收藏、帖子详情都由 `todoApi` 提供 mock 数据，后续可直接替换成真实
-              HTTP 请求。
-            </p>
-          </div>
-        </aside>
-      </section>
-
-      <section className="feed-layout">
-        <div className="feed-column">
-          {loading ? <div className="section-card">正在装载社区动态...</div> : null}
-          {posts.map((post) => (
-            <article key={post.id} className="post-card">
-              <div className="post-card-image" style={{ backgroundImage: `url(${post.image ?? ""})` }} />
-              <div className="post-card-body">
-                <div className="post-card-head">
-                  <span className={`tone-pill tone-${post.categoryTone}`}>{post.category}</span>
-                  <span className="muted">{post.time}</span>
-                </div>
-                <h3>{post.title}</h3>
-                <p>{post.summary}</p>
-                <div className="author-row">
-                  <div className="avatar-badge">{post.avatar}</div>
-                  <div>
-                    <strong>{post.author}</strong>
-                    <span>{post.authorBadge} · {post.location}</span>
+      {merchantItems.length > 0 ? (
+        <>
+          <SectionHeader title="附近商家" subtitle="商家条目使用 linli Discover 接口中的 merchant 数据" />
+          <div className={styles.merchantGrid}>
+            {merchantItems.map((item) => (
+              <article key={item.id} className={styles.merchantCard}>
+                {item.coverUrl ? <img src={item.coverUrl} alt={item.title} className={styles.merchantCover} /> : null}
+                <div className={styles.merchantBody}>
+                  <div className={styles.merchantMeta}>
+                    <h3>{item.title}</h3>
+                    <span>{formatDistance(item.distance)}</span>
+                  </div>
+                  <p>{item.summary || item.address || "暂无商家简介"}</p>
+                  <div className={styles.address}>{item.address ?? "未提供地址"}</div>
+                  <div className={styles.tagRow}>
+                    {item.tags.map((tag) => <span key={tag}>#{tag}</span>)}
+                  </div>
+                  <div className={styles.cardFooter}>
+                    <span>{item.authorName}</span>
+                    <LikeFavBar
+                      entityId={item.id}
+                      entityType="merchant"
+                      compact
+                      initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
+                    />
                   </div>
                 </div>
-                <div className="action-row">
-                  <button type="button" className="soft-button" onClick={() => toggleLike(post.id)}>
-                    {post.liked ? "已点赞" : "点赞"} {post.likes}
-                  </button>
-                  <button type="button" className="soft-button" onClick={() => toggleFavorite(post.id)}>
-                    {post.favorited ? "已收藏" : "收藏"} {post.favorites}
-                  </button>
-                  <button type="button" className="primary-link" onClick={() => setSelectedPost(post)}>
-                    查看详情
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <aside className="feed-side">
-          <div className="section-card warm-card">
-            <h3>今日社区情报</h3>
-            <ul className="bullet-list">
-              <li>南门烘焙店今天第二件半价，适合组织拼单。</li>
-              <li>羽毛球场 19:00 后相对空闲，活动帖热度较高。</li>
-              <li>闲置交易类内容收藏率显著高于普通动态。</li>
-            </ul>
+              </article>
+            ))}
           </div>
-          <div className="section-card">
-            <h3>后续接口建议</h3>
-            <ul className="bullet-list">
-              {apiSuggestions.map((item) => (
-                <li key={item.endpoint}>
-                  <code>{item.endpoint}</code> {item.description}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-      </section>
+        </>
+      ) : null}
 
-      <PostDetailDialog
-        post={selectedPost}
-        onClose={() => setSelectedPost(null)}
-        onToggleLike={toggleLike}
-        onToggleFavorite={toggleFavorite}
-      />
-    </>
+      {!loading && items.length === 0 ? (
+        <div className={styles.empty}>当前范围内还没有发现内容，可以切换半径或重新定位。</div>
+      ) : null}
+    </AppLayout>
   );
-}
+};
 
 export default DiscoverPage;

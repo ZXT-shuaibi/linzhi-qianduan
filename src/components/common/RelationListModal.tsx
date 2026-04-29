@@ -29,53 +29,63 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
 
   useEffect(() => {
     if (!open) return;
+
     let cancelled = false;
     const run = async () => {
       if (!tokens?.accessToken) {
         setError("请登录后查看列表");
         return;
       }
+
       setLoading(true);
       setError(null);
       try {
-        const resp = mode === "following"
+        const response = mode === "following"
           ? await relationService.following(userId, initialLimit, 0, undefined, tokens.accessToken)
           : await relationService.followers(userId, initialLimit, 0, undefined, tokens.accessToken);
         if (cancelled) return;
-        const list = Array.isArray(resp) ? resp : [];
+
+        const list = Array.isArray(response) ? response : [];
         setProfiles(list);
         setOffset(list.length);
         setHasMore(list.length >= initialLimit);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "加载失败";
-        if (!cancelled) setError(msg);
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "加载失败");
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
-    run();
-    return () => { cancelled = true; };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [open, userId, mode, tokens?.accessToken]);
 
   const loadMore = async () => {
     if (loading || !hasMore) return;
+
     if (!tokens?.accessToken) {
       setError("请登录后查看列表");
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
-      const resp = mode === "following"
+      const response = mode === "following"
         ? await relationService.following(userId, initialLimit, offset, undefined, tokens.accessToken)
         : await relationService.followers(userId, initialLimit, offset, undefined, tokens.accessToken);
-      const list = Array.isArray(resp) ? resp : [];
-      setProfiles(prev => [...prev, ...list]);
-      setOffset(prev => prev + list.length);
+      const list = Array.isArray(response) ? response : [];
+      setProfiles((current) => [...current, ...list]);
+      setOffset((current) => current + list.length);
       setHasMore(list.length >= initialLimit);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "加载失败";
-      setError(msg);
+      setError(e instanceof Error ? e.message : "加载失败");
     } finally {
       setLoading(false);
     }
@@ -85,7 +95,7 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
 
   return (
     <div className={styles._overlay_1q1ln_1} onClick={onClose}>
-      <div className={styles._modal_1q1ln_12} onClick={e => e.stopPropagation()}>
+      <div className={styles._modal_1q1ln_12} onClick={(e) => e.stopPropagation()}>
         <div className={styles._header_1q1ln_24}>
           <span className={styles._title_1q1ln_32}>{title}</span>
           <button className={styles._close_1q1ln_38} onClick={onClose}>关闭</button>
@@ -96,14 +106,14 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
             <div className={styles._empty_1q1ln_101}>暂无数据</div>
           ) : (
             <div className={styles._list_1q1ln_52}>
-              {profiles.map((p) => (
-                <div key={p.id} className={styles._item_1q1ln_59}>
-                  {p.avatar ? (
-                    <img className={styles._avatar_1q1ln_69} src={p.avatar} alt={p.nickname} />
+              {profiles.map((profile) => (
+                <div key={profile.id} className={styles._item_1q1ln_59}>
+                  {profile.avatar ? (
+                    <img className={styles._avatar_1q1ln_69} src={profile.avatar} alt={profile.nickname} />
                   ) : (
-                    <div className={styles._avatar_1q1ln_69}>{initialChar(p.nickname, p.id)}</div>
+                    <div className={styles._avatar_1q1ln_69}>{initialChar(profile.nickname, profile.id)}</div>
                   )}
-                  <div className={styles._name_1q1ln_80}>{p.nickname || "知光用户"}</div>
+                  <div className={styles._name_1q1ln_80}>{profile.nickname || "邻知用户"}</div>
                 </div>
               ))}
             </div>
@@ -111,7 +121,7 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
         </div>
         <div className={styles._footer_1q1ln_85}>
           <button className={styles._more_1q1ln_93} onClick={loadMore} disabled={!hasMore || loading}>
-            {loading ? "加载中..." : hasMore ? "加载更多" : "没有更多"}
+            {loading ? "加载中..." : hasMore ? "加载更多" : "没有更多了"}
           </button>
         </div>
       </div>

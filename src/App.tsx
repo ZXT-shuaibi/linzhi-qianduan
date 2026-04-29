@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
+import DiscoverPage from "./pages/DiscoverPage";
+import MarketPage from "./pages/MarketPage";
 import SearchPage from "./pages/SearchPage";
 import CreatePage from "./pages/CreatePage";
 import LearningPage from "./pages/LearningPage";
@@ -13,6 +15,8 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/discover" element={<DiscoverPage />} />
+      <Route path="/market" element={<MarketPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/create" element={<CreatePage />} />
       <Route path="/learn" element={<LearningPage />} />

@@ -14,11 +14,11 @@ import { useAuth } from "@/context/AuthContext";
 
 const SearchPage = () => {
   const [q, setQ] = useState("");
-  const [tags] = useState(""); // 逗号分隔
+  const [tags] = useState(""); // 多个标签之间使用逗号分隔。
   const [size] = useState<number>(20);
   const [items, setItems] = useState<FeedItem[]>([]);
   const [after, setAfter] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
@@ -29,16 +29,17 @@ const SearchPage = () => {
   const executeSearch = async (keyword: string) => {
     const text = keyword.trim();
     if (!text) return;
+
     if (!user) {
       setShowLoginHint(true);
     }
     setQ(text);
     setLoading(true);
     try {
-      const resp = await searchService.query({ q: text, size, tags: tags.trim() || undefined });
-      setItems(resp.items ?? []);
-      setAfter(resp.nextAfter ?? null);
-      setHasMore(!!resp.hasMore);
+      const response = await searchService.query({ q: text, size, tags: tags.trim() || undefined });
+      setItems(response.items ?? []);
+      setAfter(response.nextAfter ?? null);
+      setHasMore(Boolean(response.hasMore));
     } catch {
       setItems([]);
       setAfter(null);
@@ -50,10 +51,10 @@ const SearchPage = () => {
 
   return (
     <AppLayout
-      header={
+      header={(
         <MainHeader
           headline="搜索你想学习的知识"
-          subtitle="从提示词或你的历史记录开始探索，连接灵感与成长"
+          subtitle="从关键词开始，探索附近社区里的真实内容"
           rightSlot={<AuthStatus />}
         >
           <SearchBar
@@ -61,19 +62,22 @@ const SearchPage = () => {
             value={q}
             suggestions={suggestions}
             suggestLoading={suggestLoading}
-            onSuggestionClick={(s) => {
-              executeSearch(s);
+            onSuggestionClick={(value) => {
+              void executeSearch(value);
             }}
-            onChange={(val) => {
-              setQ(val);
-              // 前缀联想：300ms 防抖
+            onChange={(value) => {
+              setQ(value);
+              // 前缀联想使用 300 毫秒防抖。
               if (debounceRef.current) window.clearTimeout(debounceRef.current);
               debounceRef.current = window.setTimeout(async () => {
-                if (!val.trim()) { setSuggestions([]); return; }
+                if (!value.trim()) {
+                  setSuggestions([]);
+                  return;
+                }
                 try {
                   setSuggestLoading(true);
-                  const resp = await searchService.suggest(val.trim(), 10);
-                  setSuggestions(resp.items ?? []);
+                  const response = await searchService.suggest(value.trim(), 10);
+                  setSuggestions(response.items ?? []);
                 } catch {
                   setSuggestions([]);
                 } finally {
@@ -81,20 +85,25 @@ const SearchPage = () => {
                 }
               }, 300);
             }}
-            onSubmit={() => executeSearch(q)}
+            onSubmit={() => {
+              void executeSearch(q);
+            }}
           />
         </MainHeader>
-      }
+      )}
     >
       <>
         {showLoginHint && !user ? (
           <div className={styles.loginHint}>
-            当前为未登录状态，登录后可获得更完整的推荐与学习记录。
+            当前为未登录状态，登录后可以获得更完整的推荐和学习记录。
           </div>
         ) : null}
-        <SectionHeader title="搜索结果" subtitle={loading ? "加载中…" : items.length ? `共 ${items.length} 条（可能有更多）` : "请输入关键词后搜索"} />
+        <SectionHeader
+          title="搜索结果"
+          subtitle={loading ? "加载中..." : items.length ? `共 ${items.length} 条结果（可能还有更多）` : "请输入关键词后开始搜索"}
+        />
         <div className={feedStyles.masonry}>
-          {items.map(item => (
+          {items.map((item) => (
             <div key={item.id} className={feedStyles.masonryItem}>
               <CourseCard
                 id={item.id}
@@ -104,7 +113,9 @@ const SearchPage = () => {
                 isTop={item.isTop}
                 authorTags={(() => {
                   try {
-                    return item.tagJson ? (JSON.parse(item.tagJson) as unknown[]).filter((t) => typeof t === "string") as string[] : [];
+                    return item.tagJson
+                      ? (JSON.parse(item.tagJson) as unknown[]).filter((tag): tag is string => typeof tag === "string")
+                      : [];
                   } catch {
                     return [];
                   }
@@ -112,7 +123,14 @@ const SearchPage = () => {
                 teacher={{ name: item.authorNickname, avatarUrl: item.authorAvatar ?? item.authorAvator }}
                 coverImage={item.coverImage}
                 to={`/post/${item.id}`}
-                footerExtra={<LikeFavBar entityId={item.id} compact initialCounts={{ like: item.likeCount ?? 0, fav: item.favoriteCount ?? 0 }} initialState={{ liked: item.liked, faved: item.faved }} />}
+                footerExtra={(
+                  <LikeFavBar
+                    entityId={item.id}
+                    compact
+                    initialCounts={{ like: item.likeCount ?? 0, fav: item.favoriteCount ?? 0 }}
+                    initialState={{ liked: item.liked, faved: item.faved }}
+                  />
+                )}
               />
             </div>
           ))}
@@ -125,17 +143,19 @@ const SearchPage = () => {
               if (!q.trim() || !after) return;
               setLoading(true);
               try {
-                const resp = await searchService.query({ q: q.trim(), size, tags: tags.trim() || undefined, after });
-                setItems(prev => [...prev, ...(resp.items ?? [])]);
-                setAfter(resp.nextAfter ?? null);
-                setHasMore(!!resp.hasMore);
+                const response = await searchService.query({ q: q.trim(), size, tags: tags.trim() || undefined, after });
+                setItems((current) => [...current, ...(response.items ?? [])]);
+                setAfter(response.nextAfter ?? null);
+                setHasMore(Boolean(response.hasMore));
               } catch {
-                // 保持已有数据
+                // 加载更多失败时保留当前结果。
               } finally {
                 setLoading(false);
               }
             }}
-          >加载更多</button>
+          >
+            加载更多
+          </button>
         ) : null}
       </>
     </AppLayout>

@@ -104,7 +104,7 @@ const parseInstantToMillis = (value: string): number => {
 const toTokens = (token: LoginResponse["tokens"] | RefreshResponse): AuthTokens => ({
   accessToken: token.accessToken,
   refreshToken: token.refreshToken,
-  expiresAt: parseInstantToMillis(token.accessTokenExpiresAt)
+  expiresAt: parseInstantToMillis(token.accessTokenExpiresAt ?? token.accessExpiresAt ?? "")
 });
 
 type AuthProviderProps = {

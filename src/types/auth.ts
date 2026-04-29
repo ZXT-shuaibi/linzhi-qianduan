@@ -8,6 +8,7 @@ export type SendCodeRequest = {
 };
 
 export type SendCodeResponse = {
+  phone?: string;
   identifier: string;
   scene: VerificationScene;
   code: string;
@@ -39,9 +40,11 @@ export type LoginRequest = {
 
 export type AuthTokens = {
   accessToken: string;
-  accessTokenExpiresAt: string;
+  accessExpiresAt?: string;
+  accessTokenExpiresAt?: string;
   refreshToken: string;
-  refreshTokenExpiresAt: string;
+  refreshExpiresAt?: string;
+  refreshTokenExpiresAt?: string;
   tokenType?: string;
 };
 

@@ -33,6 +33,8 @@ type FeedItemApi = {
   favoriteCount?: number | null;
   liked?: boolean | null;
   faved?: boolean | null;
+  distanceMeters?: number | null;
+  hotScore?: number | null;
   isTop?: boolean | null;
   publishedAt?: string | null;
 };
@@ -85,6 +87,8 @@ const buildFeedResponse = (response: FeedApiResponse, page: number, size: number
         favoriteCount: item.favoriteCount,
         liked: item.liked,
         faved: item.faved,
+        distanceMeters: item.distanceMeters,
+        hotScore: item.hotScore,
         isTop: item.isTop,
         publishedAt: item.publishedAt
       })

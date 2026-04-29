@@ -4,6 +4,16 @@
   gap: 12px;
 }
 
+.profileLink {
+  border-radius: 999px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profileLink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(230, 126, 34, 0.14);
+}
+
 .logoutButton {
   padding: 8px 16px;
   border-radius: 999px;

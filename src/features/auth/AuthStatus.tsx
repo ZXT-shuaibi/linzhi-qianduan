@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import UserBadge from "@/components/common/UserBadge";
 import { useAuth } from "@/context/AuthContext";
 import styles from "./AuthStatus.module.css";
@@ -42,7 +42,9 @@ const AuthStatus = () => {
 
   return (
     <div className={styles.wrapper}>
-      <UserBadge name={displayName} avatarUrl={avatarUrl} />
+      <Link to="/profile" className={styles.profileLink} aria-label="进入个人主页">
+        <UserBadge name={displayName} avatarUrl={avatarUrl} />
+      </Link>
       <button type="button" className={styles.logoutButton} onClick={handleLogout}>
         退出
       </button>

@@ -56,6 +56,8 @@ export type FeedItem = {
   liked?: boolean;
   faved?: boolean;
   isTop?: boolean;
+  distanceMeters?: number;
+  hotScore?: number;
   visible?: VisibleScope;
   publishedAt?: string;
 };

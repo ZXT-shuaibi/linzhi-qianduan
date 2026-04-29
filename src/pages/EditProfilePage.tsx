@@ -61,6 +61,7 @@ const EditProfilePage = () => {
       setMessage(err instanceof Error ? err.message : "头像上传失败");
     } finally {
       setUploading(false);
+      event.target.value = "";
     }
   };
 
@@ -118,8 +119,13 @@ const EditProfilePage = () => {
               role="button"
               tabIndex={0}
               aria-label="上传头像"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  fileInputRef.current?.click();
+                }
+              }}
             >
-              {avatarUrl ? <img src={avatarUrl} alt="avatar" className={styles.avatarImg} /> : <span>{avatarInitial}</span>}
+              {avatarUrl ? <img src={avatarUrl} alt="头像" className={styles.avatarImg} /> : <span>{avatarInitial}</span>}
             </div>
             <input
               ref={fileInputRef}

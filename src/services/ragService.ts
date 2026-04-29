@@ -1,6 +1,6 @@
 export type RagStreamRequest = {
   question: string;
-  postId?: number;
+  postId?: string;
   lat?: number;
   lng?: number;
   topK?: number;

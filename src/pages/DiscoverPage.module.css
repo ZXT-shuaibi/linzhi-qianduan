@@ -1,104 +1,629 @@
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
+.shell {
+  position: relative;
+  width: min(1500px, 100%);
+  min-height: 100vh;
+  padding: 18px 30px 48px;
+  overflow: hidden;
 }
 
-.filters {
+.shell::before {
+  content: "";
+  position: fixed;
+  right: -180px;
+  top: -220px;
+  width: 620px;
+  height: 620px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(235, 128, 62, 0.22), transparent 66%);
+  pointer-events: none;
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.78fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.heroCopy,
+.mapCard,
+.controls,
+.summaryStrip,
+.topicPanel,
+.merchantPanel,
+.error,
+.loading,
+.empty,
+.emptySmall {
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 244, 230, 0.68)),
+    rgba(255, 255, 255, 0.72);
+  box-shadow: 0 24px 64px rgba(100, 58, 34, 0.1);
+  backdrop-filter: blur(22px);
+}
+
+.heroCopy {
+  min-height: 380px;
+  padding: 46px;
+  border-radius: 42px;
+}
+
+.heroCopy > span,
+.sectionHeading span,
+.mapHeader span {
+  color: #b95f34;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.heroCopy h1 {
+  max-width: 760px;
+  margin-top: 18px;
+  color: #2d2018;
+  font-size: clamp(42px, 5vw, 68px);
+  line-height: 0.98;
+  letter-spacing: -0.07em;
+}
+
+.heroCopy p {
+  max-width: 700px;
+  margin-top: 22px;
+  color: #79543c;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.heroActions {
   display: flex;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.heroActions button,
+.heroActions a {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 20px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.heroActions button {
+  border: none;
+  color: #fff7ed;
+  background: linear-gradient(135deg, #ec7d3d 0%, #a84f32 100%);
+  box-shadow: 0 18px 34px rgba(186, 83, 40, 0.24);
+}
+
+.heroActions a {
+  border: 1px solid rgba(132, 82, 52, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  color: #5d3c2a;
+}
+
+.mapCard {
+  min-height: 380px;
+  padding: 24px;
+  border-radius: 42px;
+  background:
+    radial-gradient(circle at 15% 18%, rgba(255, 213, 154, 0.4), transparent 32%),
+    linear-gradient(145deg, rgba(79, 49, 35, 0.96), rgba(158, 78, 45, 0.86));
+  color: #fff7ed;
+}
+
+.mapHeader,
+.sectionHeading,
+.cardFooter,
+.merchantFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mapHeader strong {
+  color: #fff7ed;
+}
+
+.mapRadar {
+  position: relative;
+  height: 260px;
+  margin-top: 20px;
+  border-radius: 34px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 62%);
+  background-size: 40px 40px, 40px 40px, auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.mapCenter,
+.mapPin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.mapCenter {
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  translate: -50% -50%;
+  background: #fff7ed;
+  color: #743e28;
+  box-shadow: 0 0 0 18px rgba(255, 247, 237, 0.12);
+}
+
+.mapPin {
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 247, 237, 0.88);
+  color: #a24f31;
+  font-size: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.mapCard p {
+  margin-top: 18px;
+  color: rgba(255, 247, 237, 0.76);
+}
+
+.controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 22px;
+  padding: 14px;
+  border-radius: 30px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.filterButton {
-  border: 1px solid rgba(255, 138, 65, 0.24);
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--color-text);
-  border-radius: 999px;
-  padding: 10px 16px;
+.filterButton,
+.radiusButton {
+  border: none;
   cursor: pointer;
-  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.filterButtonActive {
-  background: linear-gradient(135deg, #ff9a54 0%, #ff7a22 100%);
-  color: #fff;
-  box-shadow: 0 12px 24px rgba(255, 122, 34, 0.24);
-}
-
-.locationCard,
-.loading,
-.empty,
-.error {
-  padding: 18px 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 14px 32px rgba(26, 26, 44, 0.06);
-}
-
-.locationCard {
+.filterButton {
+  min-width: 132px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  padding: 13px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.64);
+  color: #6d4a35;
+  text-align: left;
+}
+
+.filterButton strong {
+  color: #2d2018;
+  font-size: 15px;
+}
+
+.filterButton span {
+  color: #9b6f57;
+  font-size: 12px;
+}
+
+.filterButtonActive,
+.filterButton:hover {
+  background: #fff7ed;
+  box-shadow: 0 14px 30px rgba(143, 80, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.radiusButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+  color: #6d4a35;
+  font-weight: 900;
+}
+
+.radiusButtonActive,
+.radiusButton:hover {
+  background: #2d2018;
+  color: #fff7ed;
+}
+
+.summaryStrip {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 30px;
+}
+
+.summaryStrip div {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.summaryStrip span,
+.summaryStrip strong {
+  display: block;
+}
+
+.summaryStrip span {
+  color: #9b6f57;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.summaryStrip strong {
+  margin-top: 4px;
+  color: #2d2018;
+  font-size: 18px;
+}
+
+.error,
+.loading,
+.empty,
+.emptySmall {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  color: #8a5d43;
 }
 
 .error {
-  color: #d43f3a;
+  color: #b4432b;
 }
 
-.merchantGrid {
+.contentGrid {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 392px;
+  gap: 22px;
+  margin-top: 22px;
+  align-items: start;
+}
+
+.mainColumn,
+.sideColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionHeading h2 {
+  margin-top: 4px;
+  color: #2d2018;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+
+.sectionHeading small {
+  color: #9b6f57;
+  font-weight: 900;
+}
+
+.postGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.postCard {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 18px 44px rgba(100, 58, 34, 0.08);
+}
+
+.cardFooter {
+  width: 100%;
+  color: #9b6f57;
+  font-size: 13px;
+}
+
+.topicPanel,
+.merchantPanel {
+  padding: 22px;
+  border-radius: 30px;
+}
+
+.tagCloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tagCloud button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 13px;
+  background: rgba(255, 245, 231, 0.86);
+  color: #6a422d;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tagCloud button span {
+  color: #b95f34;
+}
+
+.tagCloud .tagButtonActive {
+  background: #2d2018;
+  color: #fff7ed;
+}
+
+.tagCloud .tagButtonActive span {
+  color: #ffd8a8;
+}
+
+.tagCloud p {
+  color: #9b6f57;
+}
+
+.merchantList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
 }
 
 .merchantCard {
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 14px;
+  padding: 12px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 18px 42px rgba(26, 26, 44, 0.08);
+  background: rgba(255, 255, 255, 0.62);
 }
 
-.merchantCover {
-  width: 100%;
-  height: 180px;
+.merchantCard img,
+.merchantFallback {
+  width: 92px;
+  height: 92px;
+  border-radius: 20px;
+}
+
+.merchantCard img {
   object-fit: cover;
   display: block;
 }
 
-.merchantBody {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
+.merchantFallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #f3a35f, #9c5032);
+  color: #fff7ed;
+  font-size: 26px;
+  font-weight: 900;
 }
 
-.merchantMeta {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
+.merchantCard strong {
+  color: #2d2018;
 }
 
-.address {
-  color: var(--color-text-muted);
-  font-size: 14px;
-}
-
-.tagRow {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  color: var(--color-primary-strong);
+.merchantCard p {
+  margin-top: 6px;
+  color: #7c5a45;
   font-size: 13px;
+  line-height: 1.55;
 }
 
-.cardFooter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  color: var(--color-text-muted);
+.merchantCard small {
+  display: block;
+  margin-top: 8px;
+  color: #9b6f57;
+  font-size: 12px;
+}
+
+.merchantFooter {
+  margin-top: 10px;
+  color: #b95f34;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.emptySmall {
+  margin-top: 12px;
+  box-shadow: none;
+}
+
+@media (max-width: 1280px) {
+  .hero,
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sideColumn {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .heroCopy {
+    padding: 30px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryStrip,
+  .postGrid,
+  .sideColumn {
+    grid-template-columns: 1fr;
+  }
+}
+
+.heroCopy,
+.mapCard,
+.controls,
+.summaryStrip,
+.topicPanel,
+.merchantPanel,
+.error,
+.loading,
+.empty,
+.emptySmall {
+  border-color: rgba(230, 126, 34, 0.12);
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 24px 48px rgba(230, 126, 34, 0.06);
+}
+
+.hero {
+  grid-template-columns: minmax(0, 0.95fr) minmax(400px, 0.78fr);
+}
+
+.heroCopy {
+  min-height: 340px;
+  padding: 40px;
+  border-radius: 40px;
+}
+
+.heroCopy > span,
+.sectionHeading span,
+.mapHeader span {
+  color: var(--linzhi-primary);
+  letter-spacing: 0.1em;
+}
+
+.heroCopy h1 {
+  color: var(--linzhi-text);
+  font-size: clamp(30px, 3.2vw, 42px);
+  line-height: 1.14;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+
+.heroCopy p,
+.mapCard p,
+.filterButton span,
+.summaryStrip span,
+.sectionHeading small,
+.cardFooter,
+.tagCloud p,
+.merchantCard p,
+.merchantCard small {
+  color: var(--linzhi-muted);
+}
+
+.heroActions button {
+  color: #fff;
+  background: linear-gradient(135deg, #f3a24f 0%, #e67e22 100%);
+  box-shadow: 0 18px 34px rgba(230, 126, 34, 0.2);
+}
+
+.heroActions a,
+.filterButtonActive,
+.filterButton:hover,
+.tagCloud .tagButtonActive {
+  color: var(--linzhi-primary);
+  background: var(--linzhi-primary-soft);
+}
+
+.mapCard {
+  min-height: 340px;
+  color: var(--linzhi-text);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(230, 126, 34, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 243, 0.86));
+}
+
+.mapHeader strong,
+.filterButton strong,
+.summaryStrip strong,
+.sectionHeading h2,
+.merchantCard strong {
+  color: var(--linzhi-text);
+}
+
+.mapRadar {
+  background:
+    linear-gradient(rgba(230, 126, 34, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(230, 126, 34, 0.08) 1px, transparent 1px),
+    radial-gradient(circle, rgba(230, 126, 34, 0.08), transparent 62%);
+  box-shadow: inset 0 0 0 1px rgba(230, 126, 34, 0.1);
+}
+
+.mapCenter {
+  background: #fff;
+  color: var(--linzhi-primary);
+  box-shadow: 0 0 0 18px rgba(230, 126, 34, 0.12);
+}
+
+.mapPin {
+  background: #fff;
+  color: var(--linzhi-primary);
+}
+
+.filterButton,
+.radiusButton,
+.summaryStrip div,
+.tagCloud button,
+.merchantCard {
+  background: #fff;
+  color: var(--linzhi-text);
+  border: 1px solid rgba(230, 126, 34, 0.1);
+}
+
+.radiusButtonActive,
+.radiusButton:hover {
+  background: var(--linzhi-primary);
+  color: #fff;
+}
+
+.sectionHeading h2 {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.postCard {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 40px rgba(230, 126, 34, 0.08);
+}
+
+.tagCloud button span,
+.merchantFooter {
+  color: var(--linzhi-primary);
+}
+
+.merchantFallback {
+  color: #fff;
+  background: linear-gradient(135deg, #f6c37a, #e67e22);
 }

@@ -1,40 +1,41 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentPropsWithoutRef,
   type MouseEvent as ReactMouseEvent
 } from "react";
 import { useParams } from "react-router-dom";
-import AppLayout from "@/components/layout/AppLayout";
-import MainHeader from "@/components/layout/MainHeader";
-import Tag from "@/components/common/Tag";
-import SectionHeader from "@/components/common/SectionHeader";
-import { ArrowRightIcon } from "@/components/icons/Icon";
-import AuthStatus from "@/features/auth/AuthStatus";
-import styles from "./CourseDetailPage.module.css";
-import { knowpostService } from "@/services/knowpostService";
-import { streamRagAnswer } from "@/services/ragService";
-import { useAuth } from "@/context/AuthContext";
-import type { KnowpostDetailResponse } from "@/types/knowpost";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import LikeFavBar from "@/components/common/LikeFavBar";
 import FollowButton from "@/components/common/FollowButton";
+import LikeFavBar from "@/components/common/LikeFavBar";
+import Tag from "@/components/common/Tag";
+import { ArrowRightIcon } from "@/components/icons/Icon";
+import CommunityTopNav from "@/components/layout/CommunityTopNav";
+import { useAuth } from "@/context/AuthContext";
+import { knowpostService } from "@/services/knowpostService";
+import { streamRagAnswer } from "@/services/ragService";
+import type { KnowpostDetailResponse } from "@/types/knowpost";
+import styles from "./CourseDetailPage.module.css";
 
 const MarkdownLink = ({ node: _node, ...props }: ComponentPropsWithoutRef<"a"> & { node?: unknown }) => (
   <a {...props} target="_blank" rel="noreferrer" />
 );
 
 const MarkdownImage = ({ node: _node, ...props }: ComponentPropsWithoutRef<"img"> & { node?: unknown }) => (
-  <img {...props} style={{ maxWidth: "100%", borderRadius: 12 }} />
+  <img {...props} />
 );
+
+const getInitial = (name?: string | null) => name?.trim().charAt(0) || "邻";
 
 const CourseDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { tokens, user } = useAuth();
   const [detail, setDetail] = useState<KnowpostDetailResponse | null>(null);
   const [contentText, setContentText] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -55,6 +56,7 @@ const CourseDetailPage = () => {
     let cancelled = false;
     const run = async () => {
       if (!id) return;
+      setLoading(true);
       setError(null);
       setContentError(null);
       setContentText("");
@@ -62,6 +64,7 @@ const CourseDetailPage = () => {
         const response = await knowpostService.detail(id, tokens?.accessToken ?? undefined);
         if (cancelled) return;
         setDetail(response);
+        setPreviewIndex(0);
 
         if (!response.contentUrl) {
           return;
@@ -85,6 +88,10 @@ const CourseDetailPage = () => {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "加载详情失败");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
     };
@@ -110,19 +117,28 @@ const CourseDetailPage = () => {
     };
   }, []);
 
+  const images = detail?.images ?? [];
+  const activeImage = images[previewIndex] ?? images[0] ?? null;
+  const canFollow = Boolean(detail?.authorId && detail.authorId !== user?.id);
+  const publishTime = useMemo(() => {
+    if (!detail?.publishTime) return "发布时间未知";
+    const date = new Date(detail.publishTime);
+    return Number.isNaN(date.getTime()) ? "发布时间未知" : date.toLocaleString("zh-CN");
+  }, [detail?.publishTime]);
+
   const openPreview = (index: number) => {
     setPreviewIndex(index);
     setPreviewOpen(true);
   };
 
   const prevImage = () => {
-    if (!detail?.images?.length) return;
-    setPreviewIndex((current) => (current - 1 + detail.images.length) % detail.images.length);
+    if (!images.length) return;
+    setPreviewIndex((current) => (current - 1 + images.length) % images.length);
   };
 
   const nextImage = () => {
-    if (!detail?.images?.length) return;
-    setPreviewIndex((current) => (current + 1) % detail.images.length);
+    if (!images.length) return;
+    setPreviewIndex((current) => (current + 1) % images.length);
   };
 
   const handlePreviewMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -149,7 +165,7 @@ const CourseDetailPage = () => {
       await streamRagAnswer(
         {
           question: ragQuestion.trim(),
-          postId: Number(detail.id),
+          postId: detail.id,
           topK: ragTopK
         },
         {
@@ -183,107 +199,89 @@ const CourseDetailPage = () => {
     setRagLoading(false);
   };
 
-  const canFollow = detail?.authorId && detail.authorId !== user?.id;
-
   return (
-    <AppLayout
-      header={(
-        <MainHeader
-          headline={detail?.title ?? "帖子详情"}
-          subtitle={detail?.description ?? ""}
-          rightSlot={<AuthStatus />}
-        />
-      )}
-      variant="cardless"
-    >
-      <article className={styles.detailCard}>
-        {error ? <div style={{ color: "var(--color-danger)" }}>{error}</div> : null}
+    <main className={styles.shell}>
+      <CommunityTopNav locationLabel="帖子详情" />
 
-        {detail?.images?.length ? (
-          <div className={styles.imageRow}>
-            {detail.images.map((src, index) => (
-              <div key={`${src}-${index}`} className={styles.imageItem} onClick={() => openPreview(index)}>
-                <img className={styles.image} src={src} alt={detail.title} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className={styles.titleBlock}>
-          <div className={styles.meta}>
-            {detail?.authorAvatar ? (
-              <img className={styles.authorAvatar} src={detail.authorAvatar} alt={detail.authorNickname} />
-            ) : null}
-            <span className={styles.authorName}>{detail?.authorNickname ?? "社区用户"}</span>
-            {canFollow ? <FollowButton targetUserId={detail.authorId} /> : null}
-            {detail?.publishTime ? <span>{new Date(detail.publishTime).toLocaleString("zh-CN")}</span> : null}
-          </div>
-          <div className={styles.tagList}>
-            {(detail?.tags ?? []).map((tag) => <Tag key={tag}>#{tag}</Tag>)}
-          </div>
-          <div className={styles.bottomBar}>
-            {detail ? (
-              <LikeFavBar
-                entityId={detail.id}
-                initialCounts={{ like: detail.likeCount ?? 0, fav: detail.favoriteCount ?? 0 }}
-                initialState={{ liked: detail.liked, faved: detail.faved }}
-              />
-            ) : null}
-          </div>
-        </div>
-
-        <SectionHeader title="正文内容" subtitle="Markdown 内容直接读取对象存储中的正文文件" />
-        <div className={styles.contentRow}>
-          <div className={styles.contentMain}>
-            <div className={`${styles.body} ${styles.markdown}`}>
-              {contentText ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    a: MarkdownLink,
-                    img: MarkdownImage
-                  }}
-                >
-                  {contentText}
-                </ReactMarkdown>
-              ) : (
-                detail?.description || "暂无正文内容"
-              )}
+      <section className={styles.detailStage}>
+        <aside className={styles.galleryPanel}>
+          {activeImage ? (
+            <button type="button" className={styles.heroImageButton} onClick={() => openPreview(previewIndex)}>
+              <img src={activeImage} alt={detail?.title ?? "帖子图片"} />
+            </button>
+          ) : (
+            <div className={styles.imageFallback}>
+              <span>{getInitial(detail?.authorNickname)}</span>
+              <strong>{loading ? "正在加载帖子" : "邻里知光"}</strong>
             </div>
-            {contentError ? <div style={{ color: "var(--color-danger)" }}>{contentError}</div> : null}
-          </div>
+          )}
 
-          <aside className={styles.ragPanel}>
-            <div className={styles.ragBody}>
-              <textarea
-                className={styles.ragTextarea}
-                placeholder="围绕当前帖子提问，例如：这篇内容的核心观点是什么？"
-                value={ragQuestion}
-                onChange={(event) => setRagQuestion(event.target.value)}
-              />
-              <div className={styles.ragControls}>
+          {images.length > 1 ? (
+            <div className={styles.thumbRail}>
+              {images.map((src, index) => (
                 <button
+                  key={`${src}-${index}`}
                   type="button"
-                  className={`${styles.ragBtn} ${styles.ragBtnPrimary}`}
-                  onClick={() => void startRag()}
-                  disabled={ragLoading || !ragQuestion.trim()}
+                  className={`${styles.thumbButton} ${previewIndex === index ? styles.thumbButtonActive : ""}`}
+                  onClick={() => setPreviewIndex(index)}
                 >
-                  {ragLoading ? "生成中..." : "发起问答"}
+                  <img src={src} alt={`${detail?.title ?? "帖子图片"} ${index + 1}`} />
                 </button>
-                <button
-                  type="button"
-                  className={`${styles.ragBtn} ${styles.ragBtnGhost}`}
-                  onClick={stopRag}
-                  disabled={!ragLoading}
-                >
-                  停止
-                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className={styles.galleryGlass}>
+            <span>真实详情接口</span>
+            <strong>/api/v1/posts/{id}</strong>
+            <p>正文从对象存储 `contentUrl` 读取，图片来自 `imageUrls`。</p>
+          </div>
+        </aside>
+
+        <article className={styles.storyPanel}>
+          {error ? <div className={styles.error}>{error}</div> : null}
+          {loading && !detail ? <div className={styles.loading}>正在加载帖子详情...</div> : null}
+
+          {detail ? (
+            <>
+              <div className={styles.storyHeader}>
+                <div>
+                  <span className={styles.eyebrow}>Neighbor Story</span>
+                  <h1>{detail.title}</h1>
+                  <p>{detail.description || "这条内容暂未填写摘要，正文会展示作者上传的 Markdown 内容。"}</p>
+                </div>
+                <LikeFavBar
+                  entityId={detail.id}
+                  initialCounts={{ like: detail.likeCount ?? 0, fav: detail.favoriteCount ?? 0 }}
+                  initialState={{ liked: detail.liked, faved: detail.faved }}
+                />
               </div>
-              <div className={styles.ragHint}>问答流已改为调用 linli 的 `/api/v1/rag/queries/stream`。</div>
-              {ragError ? <div style={{ color: "var(--color-danger)" }}>{ragError}</div> : null}
-              <div className={styles.ragAnswer}>
-                {ragAnswer ? (
-                  <div className={styles.markdown}>
+
+              <div className={styles.authorCard}>
+                {detail.authorAvatar ? (
+                  <img src={detail.authorAvatar} alt={detail.authorNickname} />
+                ) : (
+                  <span>{getInitial(detail.authorNickname)}</span>
+                )}
+                <div>
+                  <strong>{detail.authorNickname}</strong>
+                  <small>{publishTime}</small>
+                </div>
+                {canFollow && detail.authorId ? <FollowButton targetUserId={detail.authorId} /> : null}
+              </div>
+
+              <div className={styles.tagList}>
+                {detail.tags.map((tag) => <Tag key={tag}>#{tag}</Tag>)}
+                {!detail.tags.length ? <span className={styles.muted}>暂无标签</span> : null}
+              </div>
+
+              <section className={styles.contentCard}>
+                <div className={styles.sectionTitle}>
+                  <span>Markdown Content</span>
+                  <strong>正文内容</strong>
+                </div>
+                <div className={`${styles.body} ${styles.markdown}`}>
+                  {contentText ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -291,70 +289,124 @@ const CourseDetailPage = () => {
                         img: MarkdownImage
                       }}
                     >
-                      {ragAnswer}
+                      {contentText}
                     </ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className={styles.ragPlaceholder}>{ragLoading ? "正在流式生成答案..." : "这里会显示问答结果"}</div>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
+                  ) : (
+                    detail.description || "暂无正文内容"
+                  )}
+                </div>
+                {contentError ? <div className={styles.error}>{contentError}</div> : null}
+              </section>
 
-        {previewOpen && detail?.images?.length ? (
-          <div className={styles.previewOverlay} onClick={() => setPreviewOpen(false)}>
-            <div
-              className={styles.previewBox}
-              ref={previewBoxRef}
-              onMouseMove={handlePreviewMouseMove}
-              onMouseLeave={() => {
-                if (!isTouch) {
-                  setShowNavLeft(false);
-                  setShowNavRight(false);
-                }
+              <section className={styles.ragPanel}>
+                <div className={styles.sectionTitle}>
+                  <span>RAG Stream</span>
+                  <strong>围绕当前帖子提问</strong>
+                </div>
+                <textarea
+                  className={styles.ragTextarea}
+                  placeholder="例如：这篇内容的核心观点是什么？适合谁参考？"
+                  value={ragQuestion}
+                  onChange={(event) => setRagQuestion(event.target.value)}
+                />
+                <div className={styles.ragControls}>
+                  <button
+                    type="button"
+                    className={styles.ragBtnPrimary}
+                    onClick={() => void startRag()}
+                    disabled={ragLoading || !ragQuestion.trim()}
+                  >
+                    {ragLoading ? "生成中..." : "发起问答"}
+                  </button>
+                  <button type="button" className={styles.ragBtnGhost} onClick={stopRag} disabled={!ragLoading}>
+                    停止
+                  </button>
+                </div>
+                <div className={styles.ragHint}>已接入 `/api/v1/rag/queries/stream`，答案会以流式结果写入。</div>
+                {ragError ? <div className={styles.error}>{ragError}</div> : null}
+                <div className={styles.ragAnswer}>
+                  {ragAnswer ? (
+                    <div className={styles.markdown}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: MarkdownLink,
+                          img: MarkdownImage
+                        }}
+                      >
+                        {ragAnswer}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className={styles.ragPlaceholder}>
+                      {ragLoading ? "正在流式生成答案..." : "这里会显示问答结果"}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className={styles.commentEmpty}>
+                <span>评论区</span>
+                <strong>linli 暂未暴露评论列表/发布接口</strong>
+                <p>这里先保留真实空态，等后端评论接口就绪后再接入，不展示伪评论。</p>
+              </section>
+            </>
+          ) : null}
+        </article>
+      </section>
+
+      {previewOpen && images.length ? (
+        <div className={styles.previewOverlay} onClick={() => setPreviewOpen(false)}>
+          <div
+            className={styles.previewBox}
+            ref={previewBoxRef}
+            onMouseMove={handlePreviewMouseMove}
+            onMouseLeave={() => {
+              if (!isTouch) {
+                setShowNavLeft(false);
+                setShowNavRight(false);
+              }
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img className={styles.previewImage} src={images[previewIndex]} alt={detail?.title ?? "帖子图片"} />
+            <button
+              type="button"
+              className={`${styles.navButton} ${styles.navButtonLeft} ${showNavLeft ? styles.navButtonVisible : ""}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                prevImage();
               }}
-              onClick={(event) => event.stopPropagation()}
+              aria-label="上一张"
             >
-              <img className={styles.previewImage} src={detail.images[previewIndex]} alt={detail.title} />
-              <button
-                type="button"
-                className={`${styles.navButton} ${styles.navButtonLeft} ${showNavLeft ? styles.navButtonVisible : ""}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  prevImage();
-                }}
-                aria-label="上一张"
-              >
-                <ArrowRightIcon width={24} height={24} style={{ transform: "rotate(180deg)" }} />
-              </button>
-              <button
-                type="button"
-                className={`${styles.navButton} ${styles.navButtonRight} ${showNavRight ? styles.navButtonVisible : ""}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  nextImage();
-                }}
-                aria-label="下一张"
-              >
-                <ArrowRightIcon width={24} height={24} />
-              </button>
-              <button
-                type="button"
-                className={styles.closeButton}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setPreviewOpen(false);
-                }}
-                aria-label="关闭"
-              >
-                ×
-              </button>
-            </div>
+              <ArrowRightIcon width={24} height={24} style={{ transform: "rotate(180deg)" }} />
+            </button>
+            <button
+              type="button"
+              className={`${styles.navButton} ${styles.navButtonRight} ${showNavRight ? styles.navButtonVisible : ""}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                nextImage();
+              }}
+              aria-label="下一张"
+            >
+              <ArrowRightIcon width={24} height={24} />
+            </button>
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPreviewOpen(false);
+              }}
+              aria-label="关闭"
+            >
+              ×
+            </button>
           </div>
-        ) : null}
-      </article>
-    </AppLayout>
+        </div>
+      ) : null}
+    </main>
   );
 };
 

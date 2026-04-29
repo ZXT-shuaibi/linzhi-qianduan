@@ -1,9 +1,7 @@
 import { useRef, useState } from "react";
-import AppLayout from "@/components/layout/AppLayout";
-import MainHeader from "@/components/layout/MainHeader";
-import SectionHeader from "@/components/common/SectionHeader";
+import { Link } from "react-router-dom";
 import TagInput from "@/components/common/TagInput";
-import AuthStatus from "@/features/auth/AuthStatus";
+import CommunityTopNav from "@/components/layout/CommunityTopNav";
 import { useAuth } from "@/context/AuthContext";
 import { computeSha256, knowpostService, uploadToPresigned } from "@/services/knowpostService";
 import styles from "./CreatePage.module.css";
@@ -23,6 +21,7 @@ const CreatePage = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [postId, setPostId] = useState<string | null>(null);
+  const [publishedPostId, setPublishedPostId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [uploadedImgUrls, setUploadedImgUrls] = useState<string[]>([]);
@@ -37,6 +36,10 @@ const CreatePage = () => {
 
   const handleSelectImages = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    if (!tokens?.accessToken) {
+      setError("请先登录后再上传图片");
+      return;
+    }
 
     setImageUploading(true);
     setError(null);
@@ -68,10 +71,17 @@ const CreatePage = () => {
       setError(err instanceof Error ? err.message : "图片上传失败");
     } finally {
       setImageUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
   const handlePublish = async () => {
+    if (!tokens?.accessToken) {
+      setError("请先登录后再发布动态");
+      return;
+    }
     if (!title.trim()) {
       setError("请先填写标题");
       return;
@@ -84,6 +94,7 @@ const CreatePage = () => {
     setSubmitting(true);
     setError(null);
     setMessage(null);
+    setPublishedPostId(null);
     try {
       const id = await ensureDraft();
       const file = new File([content], "content.md", { type: "text/markdown" });
@@ -110,7 +121,8 @@ const CreatePage = () => {
         description: summary.trim() || undefined
       });
       await knowpostService.publish(id);
-      setMessage("发布成功");
+      setPublishedPostId(id);
+      setMessage("发布成功，可以进入详情页查看。");
     } catch (err) {
       setError(err instanceof Error ? err.message : "发布失败");
     } finally {
@@ -147,113 +159,132 @@ const CreatePage = () => {
   };
 
   return (
-    <AppLayout
-      header={(
-        <MainHeader
-          headline="创建新内容"
-          subtitle="发布流程已对接 linli 的草稿、预签名、内容确认和发布接口"
-          rightSlot={<AuthStatus />}
-        />
-      )}
-    >
-      <div className={styles.formCard}>
-        <SectionHeader title="基础信息" subtitle="标题、正文、图片和标签都会走真实接口" />
-        <div className={styles.formGrid}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="title">标题</label>
-            <input id="title" className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} />
+    <main className={styles.shell}>
+      <CommunityTopNav locationLabel="发布动态" />
+
+      <section className={styles.composerStage}>
+        <aside className={styles.guidePanel}>
+          <span>真实发布链路</span>
+          <h1>把一条邻里经验发布成可被发现的内容。</h1>
+          <p>当前页面使用草稿、对象存储预签名、正文确认、元数据更新和发布接口，不绕过后端流程。</p>
+          <div className={styles.flowList}>
+            <div><strong>1</strong><span>创建草稿 `/posts/drafts`</span></div>
+            <div><strong>2</strong><span>上传图片与 Markdown 正文</span></div>
+            <div><strong>3</strong><span>确认内容并发布 `/publish`</span></div>
           </div>
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <label className={styles.label}>图片</label>
-            <div
-              className={styles.uploadBox}
-              role="button"
-              tabIndex={0}
-              onClick={() => fileInputRef.current?.click()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
-              }}
-            >
-              <span>{imageUploading ? "正在上传图片..." : "点击上传图片"}</span>
-              <small>最多 {MAX_IMAGES} 张，支持 JPG / PNG / SVG</small>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className={styles.fileInputHidden}
-                onChange={(e) => handleSelectImages(e.target.files)}
+        </aside>
+
+        <div className={styles.composerCard}>
+          <div className={styles.cardHeader}>
+            <div>
+              <span>New Community Post</span>
+              <h2>发布动态</h2>
+            </div>
+            <div className={styles.visibilitySwitch}>
+              <button
+                type="button"
+                className={visiblePublic ? styles.visibilityActive : ""}
+                onClick={() => setVisiblePublic(true)}
+              >
+                公开
+              </button>
+              <button
+                type="button"
+                className={!visiblePublic ? styles.visibilityActive : ""}
+                onClick={() => setVisiblePublic(false)}
+              >
+                私密
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.uploadBox} onClick={() => fileInputRef.current?.click()} role="button" tabIndex={0}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className={styles.fileInputHidden}
+              onChange={(event) => void handleSelectImages(event.target.files)}
+            />
+            <div className={styles.uploadHalo}>
+              <span>{uploadedImgUrls.length || "+"}</span>
+            </div>
+            <strong>{imageUploading ? "正在上传图片..." : "拖入灵感图片或点击上传"}</strong>
+            <small>最多 {MAX_IMAGES} 张，图片会通过 `/api/v1/storage/presign` 上传</small>
+          </div>
+
+          {uploadedImgUrls.length > 0 ? (
+            <div className={styles.thumbGrid}>
+              {uploadedImgUrls.map((url, index) => (
+                <button key={`${url}-${index}`} type="button" onClick={() => setPreviewUrl(url)}>
+                  <img src={url} alt={`已上传图片 ${index + 1}`} />
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className={styles.formGrid}>
+            <label className={styles.field}>
+              <span>标题</span>
+              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="例如：周末亲子陶艺课体验记录" />
+            </label>
+
+            <label className={styles.field}>
+              <span>标签</span>
+              <TagInput id="tags" value={tags} onChange={setTags} placeholder="输入后按回车添加标签" />
+            </label>
+
+            <label className={`${styles.field} ${styles.fullWidth}`}>
+              <span>正文 Markdown</span>
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder="写下地点、体验、步骤、注意事项，支持 Markdown。"
               />
-            </div>
-            {uploadedImgUrls.length > 0 ? (
-              <div className={styles.thumbGrid}>
-                {uploadedImgUrls.map((url, index) => (
-                  <img key={`${url}-${index}`} src={url} alt="" className={styles.thumb} onClick={() => setPreviewUrl(url)} />
-                ))}
+            </label>
+
+            <div className={`${styles.field} ${styles.fullWidth}`}>
+              <div className={styles.summaryHeader}>
+                <span>摘要</span>
+                <button type="button" onClick={() => void handleToggleAiSummary()} disabled={aiSummaryLoading}>
+                  {aiSummaryLoading ? "生成中..." : aiSummaryEnabled ? "关闭 AI 摘要" : "AI 生成摘要"}
+                </button>
               </div>
-            ) : null}
-          </div>
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <label className={styles.label} htmlFor="content">正文</label>
-            <textarea id="content" className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} />
-          </div>
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <div className={styles.fieldHeader}>
-              <label className={styles.label} htmlFor="summary">摘要</label>
-              <div className={styles.headActions}>
-                <span>AI 摘要</span>
-                <div
-                  className={`${styles.inlineSwitch} ${aiSummaryEnabled ? styles.inlineSwitchOn : ""}`}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={aiSummaryEnabled}
-                  onClick={() => void handleToggleAiSummary()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") void handleToggleAiSummary();
-                  }}
-                />
-                {aiSummaryLoading ? <small className={styles.muted}>生成中...</small> : null}
-              </div>
-            </div>
-            <textarea id="summary" className={styles.textarea} value={summary} onChange={(e) => setSummary(e.target.value)} />
-            <small className={summary.trim().length > 50 ? styles.charCountOver : styles.charCount}>{summary.trim().length} / 50</small>
-          </div>
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <label className={styles.label} htmlFor="tags">标签</label>
-            <TagInput id="tags" value={tags} onChange={setTags} placeholder="输入后按回车添加标签" />
-          </div>
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <div
-              className={styles.toggle}
-              role="button"
-              tabIndex={0}
-              onClick={() => setVisiblePublic((current) => !current)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") setVisiblePublic((current) => !current);
-              }}
-            >
-              <div>
-                <div className={styles.label}>可见范围</div>
-                <small>{visiblePublic ? "公开" : "私密"}</small>
-              </div>
-              <div className={`${styles.switch} ${visiblePublic ? styles.switchOn : ""}`} aria-hidden="true" />
+              <textarea
+                value={summary}
+                onChange={(event) => setSummary(event.target.value)}
+                placeholder="50 字以内，作为 Feed 卡片摘要。"
+                className={styles.summaryTextarea}
+              />
+              <small className={summary.trim().length > 50 ? styles.charCountOver : styles.charCount}>
+                {summary.trim().length} / 50
+              </small>
             </div>
           </div>
+
+          <div className={styles.actions}>
+            <div>
+              {error ? <span className={styles.error}>{error}</span> : null}
+              {message ? <span className={styles.success}>{message}</span> : null}
+            </div>
+            <button type="button" className={styles.submit} onClick={() => void handlePublish()} disabled={submitting}>
+              {submitting ? "发布中..." : "发布"}
+            </button>
+          </div>
+
+          {publishedPostId ? (
+            <Link className={styles.viewLink} to={`/post/${publishedPostId}`}>查看刚发布的动态</Link>
+          ) : null}
         </div>
-        <div className={styles.actions}>
-          <button type="button" className={styles.submit} onClick={() => void handlePublish()} disabled={submitting}>
-            {submitting ? "发布中..." : "发布"}
-          </button>
+      </section>
+
+      {previewUrl ? (
+        <div className={styles.previewOverlay} onClick={() => setPreviewUrl(null)}>
+          <img src={previewUrl} className={styles.previewImage} alt="预览" />
         </div>
-        {error ? <div className={styles.error}>{error}</div> : null}
-        {message ? <div className={styles.success}>{message}</div> : null}
-        {previewUrl ? (
-          <div className={styles.previewOverlay} onClick={() => setPreviewUrl(null)}>
-            <img src={previewUrl} className={styles.previewImage} alt="预览" />
-          </div>
-        ) : null}
-      </div>
-    </AppLayout>
+      ) : null}
+    </main>
   );
 };
 

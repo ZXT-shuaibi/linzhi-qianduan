@@ -1,129 +1,598 @@
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+.shell {
+  position: relative;
+  width: min(1500px, 100%);
+  min-height: 100vh;
+  padding: 18px 30px 48px;
+  overflow: hidden;
 }
 
+.shell::before {
+  content: "";
+  position: fixed;
+  right: -180px;
+  top: 18%;
+  width: 620px;
+  height: 620px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(233, 126, 60, 0.2), transparent 66%);
+  pointer-events: none;
+}
+
+.hero,
 .activityCard,
-.orderCard,
-.loading,
-.empty,
+.couponPanel,
+.ordersPanel,
+.stateCard,
 .error,
-.message {
+.message,
+.orderModal {
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 244, 230, 0.72)),
+    rgba(255, 255, 255, 0.76);
+  box-shadow: 0 24px 64px rgba(100, 58, 34, 0.1);
+  backdrop-filter: blur(22px);
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 24px;
+  padding: 46px;
+  border-radius: 42px;
+}
+
+.hero span,
+.sectionBar span,
+.couponPanel span,
+.orderModal > span {
+  color: #b95f34;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 760px;
+  margin-top: 16px;
+  color: #2d2018;
+  font-size: clamp(44px, 5vw, 68px);
+  line-height: 0.98;
+  letter-spacing: -0.07em;
+}
+
+.hero p {
+  max-width: 720px;
+  margin-top: 18px;
+  color: #79543c;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.heroStats {
+  min-width: 320px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-self: end;
+}
+
+.heroStats div {
+  padding: 16px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 18px 42px rgba(26, 26, 44, 0.08);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.heroStats strong,
+.heroStats span {
+  display: block;
+}
+
+.heroStats strong {
+  color: #2d2018;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.heroStats span {
+  margin-top: 6px;
+  color: #9b6f57;
+  font-size: 12px;
+}
+
+.marketGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 22px;
+  margin-top: 22px;
+  align-items: start;
+}
+
+.activityColumn,
+.orderColumn,
+.ordersPanel,
+.orderList,
+.activityBody,
+.orderContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.activityColumn,
+.orderColumn,
+.ordersPanel,
+.orderList {
+  gap: 16px;
+}
+
+.sectionBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.sectionBar h2,
+.couponPanel h2,
+.orderModal h2 {
+  margin-top: 4px;
+  color: #2d2018;
+  font-size: 30px;
+  letter-spacing: -0.05em;
+}
+
+.filterGroup {
+  display: flex;
+  gap: 8px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.filterGroup button {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: transparent;
+  color: #8b634a;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.filterGroup .filterActive {
+  background: #2d2018;
+  color: #fff7ed;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .activityCard {
   overflow: hidden;
+  border-radius: 32px;
+}
+
+.cover,
+.coverFallback {
+  width: 100%;
+  height: 220px;
 }
 
 .cover {
-  width: 100%;
-  height: 180px;
   object-fit: cover;
   display: block;
 }
 
+.coverFallback {
+  display: grid;
+  place-items: center;
+  color: #fff7ed;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.7), transparent 26%),
+    linear-gradient(135deg, #ef8f4d, #a34f32);
+  font-size: 32px;
+  font-weight: 900;
+}
+
 .activityBody {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 13px;
   padding: 20px;
+}
+
+.activityBody h3 {
+  color: #2d2018;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.activityBody p,
+.couponPanel p,
+.orderModal p {
+  color: #79543c;
+  line-height: 1.65;
 }
 
 .statusRow,
 .meta,
 .priceRow,
-.orderActions {
+.orderActions,
+.orderTop,
+.modalActions,
+.modalPrice {
   display: flex;
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
 
+.statusRow,
+.orderTop,
+.modalPrice {
+  justify-content: space-between;
+}
+
 .meta {
-  color: var(--color-text-muted);
+  color: #9b6f57;
   font-size: 13px;
 }
 
-.priceRow strong {
-  font-size: 24px;
-  color: var(--color-primary-strong);
+.priceRow strong,
+.modalPrice strong {
+  color: #b95f34;
+  font-size: 28px;
 }
 
 .priceRow span {
+  color: #9b6f57;
   text-decoration: line-through;
-  color: var(--color-text-muted);
 }
 
 .statusBadge {
   border-radius: 999px;
   padding: 6px 10px;
-  background: rgba(255, 138, 65, 0.12);
-  color: var(--color-primary-strong);
+  background: rgba(239, 143, 77, 0.14);
+  color: #b95f34;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .statusActive {
   background: rgba(18, 192, 123, 0.12);
-  color: var(--color-success);
+  color: #0f8a5c;
 }
 
 .primaryButton,
 .secondaryButton {
   border: none;
   border-radius: 999px;
-  padding: 12px 18px;
+  padding: 11px 16px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 900;
 }
 
 .primaryButton {
-  background: linear-gradient(135deg, #ff9a54 0%, #ff7a22 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #ef8f4d, #a34f32);
+  color: #fff7ed;
+  box-shadow: 0 16px 32px rgba(180, 82, 43, 0.2);
 }
 
 .secondaryButton {
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--color-primary-strong);
-  border: 1px solid rgba(255, 138, 65, 0.24);
+  border: 1px solid rgba(191, 101, 52, 0.18);
+  background: rgba(255, 255, 255, 0.78);
+  color: #b95f34;
 }
 
-.orderList {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
 }
 
-.orderCard,
-.loading,
-.empty,
-.error,
-.message {
-  padding: 20px;
+.couponPanel,
+.ordersPanel {
+  padding: 22px;
+  border-radius: 30px;
 }
 
 .orderCard {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.orderCard img {
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.orderContent {
+  gap: 9px;
+}
+
+.orderTop h3 {
+  color: #2d2018;
+  font-size: 16px;
+}
+
+.orderActions {
+  margin-top: 4px;
+}
+
+.stateCard,
+.error,
+.message {
+  position: relative;
+  z-index: 1;
+  padding: 18px 20px;
+  border-radius: 24px;
+  color: #8a5d43;
 }
 
 .error {
-  color: #d43f3a;
+  color: #b4432b;
 }
 
 .message {
   color: #0f8a5c;
 }
 
-@media (max-width: 900px) {
-  .orderCard {
-    flex-direction: column;
-    align-items: flex-start;
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(30, 20, 15, 0.58);
+  backdrop-filter: blur(18px);
+}
+
+.orderModal {
+  width: min(520px, 100%);
+  padding: 30px;
+  border-radius: 36px;
+}
+
+.modalPrice,
+.modalActions {
+  margin-top: 18px;
+}
+
+.modalActions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 1280px) {
+  .hero,
+  .marketGrid {
+    grid-template-columns: 1fr;
   }
+
+  .hero {
+    flex-direction: column;
+  }
+
+  .heroStats {
+    width: 100%;
+  }
+}
+
+@media (max-width: 860px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .hero {
+    padding: 30px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* 设计规范收敛：市集保留真实接口空态，用轻票据和暖色卡片替代厚重深棕视觉。 */
+.shell {
+  background:
+    radial-gradient(circle at 88% 16%, rgba(230, 126, 34, 0.12), transparent 32%),
+    radial-gradient(circle at 8% 82%, rgba(39, 174, 96, 0.07), transparent 28%);
+}
+
+.shell::before {
+  background: radial-gradient(circle, rgba(230, 126, 34, 0.12), transparent 68%);
+}
+
+.hero,
+.activityCard,
+.couponPanel,
+.ordersPanel,
+.stateCard,
+.error,
+.message,
+.orderModal {
+  border-color: rgba(230, 126, 34, 0.12);
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 24px 48px rgba(230, 126, 34, 0.06);
+}
+
+.hero {
+  align-items: flex-end;
+  padding: 40px;
+  background:
+    radial-gradient(circle at 88% 16%, rgba(230, 126, 34, 0.1), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 243, 0.86));
+}
+
+.hero span,
+.sectionBar span,
+.couponPanel span,
+.orderModal > span {
+  color: var(--linzhi-primary);
+  letter-spacing: 0.1em;
+}
+
+.hero h1 {
+  max-width: 700px;
+  color: var(--linzhi-text);
+  font-size: clamp(30px, 3.2vw, 42px);
+  line-height: 1.14;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+
+.hero p,
+.activityBody p,
+.couponPanel p,
+.orderModal p,
+.meta,
+.heroStats span,
+.stateCard {
+  color: var(--linzhi-muted);
+}
+
+.heroStats {
+  min-width: 300px;
+}
+
+.heroStats div,
+.filterGroup,
+.orderCard {
+  border: 1px solid rgba(230, 126, 34, 0.1);
+  background: #fff;
+}
+
+.heroStats strong,
+.sectionBar h2,
+.couponPanel h2,
+.orderModal h2,
+.activityBody h3,
+.orderTop h3 {
+  color: var(--linzhi-text);
+  letter-spacing: -0.02em;
+}
+
+.sectionBar h2,
+.couponPanel h2,
+.orderModal h2 {
+  font-size: 24px;
+}
+
+.filterGroup button {
+  color: var(--linzhi-muted);
+}
+
+.filterGroup .filterActive {
+  color: #fff;
+  background: var(--linzhi-primary);
+  box-shadow: 0 10px 20px rgba(230, 126, 34, 0.18);
+}
+
+.activityCard {
+  background: #fff;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.activityCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 24px 48px rgba(230, 126, 34, 0.12);
+}
+
+.coverFallback {
+  color: #fff;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.68), transparent 26%),
+    linear-gradient(135deg, #f6c37a 0%, var(--linzhi-primary) 100%);
+}
+
+.statusRow span:last-child,
+.priceRow span {
+  color: var(--linzhi-muted);
+}
+
+.priceRow strong,
+.modalPrice strong {
+  color: var(--linzhi-primary);
+}
+
+.statusBadge {
+  color: var(--linzhi-primary);
+  background: var(--linzhi-primary-soft);
+}
+
+.statusActive {
+  color: var(--linzhi-green);
+  background: rgba(39, 174, 96, 0.12);
+}
+
+.primaryButton {
+  color: #fff;
+  background: linear-gradient(135deg, #f3a24f 0%, var(--linzhi-primary) 100%);
+  box-shadow: 0 16px 32px rgba(230, 126, 34, 0.18);
+}
+
+.secondaryButton {
+  color: var(--linzhi-primary);
+  background: var(--linzhi-primary-soft);
+  border-color: rgba(230, 126, 34, 0.16);
+}
+
+.couponPanel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 234, 0.96), rgba(255, 255, 255, 0.9)),
+    rgba(255, 253, 248, 0.9);
+}
+
+.couponPanel::before,
+.couponPanel::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--linzhi-bg);
+  transform: translateY(-50%);
+  box-shadow: inset 0 0 0 1px rgba(230, 126, 34, 0.1);
+}
+
+.couponPanel::before {
+  left: -15px;
+}
+
+.couponPanel::after {
+  right: -15px;
+}
+
+.couponPanel h2 {
+  margin-bottom: 10px;
+}
+
+.ordersPanel {
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.modalOverlay {
+  background: rgba(45, 52, 54, 0.28);
 }

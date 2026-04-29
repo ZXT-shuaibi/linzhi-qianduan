@@ -15,6 +15,8 @@ type PostPreviewSource = {
   liked?: boolean | null;
   faved?: boolean | null;
   isTop?: boolean | null;
+  distanceMeters?: number | null;
+  hotScore?: number | null;
   publishedAt?: string | null;
 };
 
@@ -41,6 +43,8 @@ export const mapFeedPreview = (source: PostPreviewSource): FeedItem => ({
   liked: source.liked ?? false,
   faved: source.faved ?? false,
   isTop: source.isTop ?? false,
+  distanceMeters: source.distanceMeters ?? undefined,
+  hotScore: source.hotScore ?? undefined,
   publishedAt: source.publishedAt ?? undefined
 });
 

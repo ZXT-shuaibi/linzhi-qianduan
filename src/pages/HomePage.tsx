@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import CourseCard from "@/components/cards/CourseCard";
 import LikeFavBar from "@/components/common/LikeFavBar";
 import CommunityTopNav from "@/components/layout/CommunityTopNav";
 import { discoverService } from "@/services/discoverService";
@@ -106,9 +105,6 @@ const HomePage = () => {
     );
   };
 
-  const featured = items[0] ?? null;
-  const feedItems = featured ? items.slice(1) : items;
-
   const topicStats = useMemo(() => {
     const topicMap = new Map<string, number>();
     items.forEach((item) => {
@@ -122,7 +118,7 @@ const HomePage = () => {
     return Array.from(topicMap.entries())
       .map(([label, count]) => ({ label, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+      .slice(0, 6);
   }, [items]);
 
   const communityStats = useMemo(() => {
@@ -155,17 +151,19 @@ const HomePage = () => {
     ];
   }, [cacheLayer, items, topicStats]);
 
+  const liveFeedItems = items.slice(0, 5);
+  const neighborhoodItems = items.slice(0, 4);
+  const visibleNearbyItems = nearbyItems.slice(0, 4);
+
   return (
     <main className={styles.shell}>
       <CommunityTopNav locationLabel={locationLabel} />
 
-      <section className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <h1 className={styles.heroTitle}>
-            <span>让社区里的</span>
-            <span className={styles.titleAccent}>经验、手艺</span>
-            <span>和好去处</span>
-            <span className={styles.titleGlow}>自然发光。</span>
+      <section className={styles.bentoGrid} aria-label="邻里知光首页仪表盘">
+        <section className={`${styles.bentoCard} ${styles.heroCard}`}>
+          <span className={styles.eyebrow}>Community Dashboard</span>
+          <h1>
+            让社区里的 <span>经验、手艺</span> 和好去处自然发光。
           </h1>
           <p>
             首页内容来自 `linli` 的 `/api/v1/feed/home`，附近雷达来自 `/api/v1/discover/nearby`。
@@ -173,184 +171,118 @@ const HomePage = () => {
           </p>
           <div className={styles.heroActions}>
             <Link to="/create" className={styles.primaryAction}>发布一条动态</Link>
-            <button type="button" className={styles.secondaryAction} onClick={locateMe}>
-              使用我的位置
-            </button>
+            <button type="button" className={styles.secondaryAction} onClick={locateMe}>使用我的位置</button>
           </div>
           <div className={styles.statsRow}>
             {communityStats.map((item) => (
-              <div key={item.label} className={styles.statPill}>
+              <div key={item.label} className={styles.statCard}>
                 <strong>{item.value}</strong>
                 <span>{item.label}</span>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className={styles.heroBoard}>
-          <div className={styles.boardHeader}>
+        <section className={`${styles.bentoCard} ${styles.liveFeedCard}`}>
+          <div className={styles.cardHeader}>
             <span>Community Pulse</span>
-            <strong>{cacheLayer ? `缓存命中：${cacheLayer}` : "实时 Feed"}</strong>
+            <strong>{cacheLayer ? `缓存命中：${cacheLayer}` : "实时 FEED"}</strong>
           </div>
-          <div className={styles.pulseGrid}>
-            {(featured ? [featured, ...feedItems.slice(0, 5)] : items.slice(0, 6)).map((item, index) => (
-              <Link
-                key={item.id}
-                to={`/post/${item.id}`}
-                className={`${styles.pulseCard} ${index % 2 ? styles.pulseCardOffset : ""}`}
-              >
+          <div className={styles.liveFeedBody}>
+            {liveFeedItems.map((item, index) => (
+              <Link key={item.id} to={`/post/${item.id}`} className={`${styles.liveTile} ${index === 0 ? styles.liveTileLarge : ""}`}>
                 <span>{getInitial(item.authorNickname)}</span>
                 <strong>{item.title}</strong>
                 <small>{item.tags.slice(0, 2).map((tag) => `#${tag.replace(/^#/, "")}`).join(" ") || "邻里动态"}</small>
               </Link>
             ))}
-            {!items.length ? (
-              <div className={styles.pulseEmpty}>Feed 返回内容后，这里会生成动态社区卡片阵列</div>
+            {!feedLoading && !liveFeedItems.length ? (
+              <div className={styles.emptyBlueprint}>Feed 返回内容后，这里会生成动态社区卡片阵列</div>
             ) : null}
+            {feedLoading ? <div className={styles.emptyBlueprint}>正在加载实时 Feed...</div> : null}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className={styles.dashboard}>
-        <aside className={styles.leftRail}>
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}>
-              <span>附近雷达</span>
-              <button type="button" onClick={locateMe}>重新定位</button>
-            </div>
-            <div className={styles.radar}>
-              <span className={styles.radarDot} />
-              <span className={styles.radarDot} />
-              <span className={styles.radarDot} />
-            </div>
-            <p className={styles.locationText}>{locationText}</p>
-            {nearbyError ? <div className={styles.inlineError}>{nearbyError}</div> : null}
-            <div className={styles.nearbyList}>
-              {nearbyItems.slice(0, 5).map((item) => (
-                <Link key={`${item.entityType}-${item.id}`} to={item.entityType === "post" ? `/post/${item.id}` : "/discover"} className={styles.nearbyItem}>
-                  <span>{item.entityType === "post" ? "帖" : "店"}</span>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <small>{formatDistance(item.distance)} · {item.address || item.authorName}</small>
-                  </div>
-                </Link>
-              ))}
-              {nearbyLoading ? <div className={styles.stateLine}>正在加载附近内容...</div> : null}
-              {!nearbyLoading && !nearbyItems.length ? <div className={styles.stateLine}>当前范围暂无附近内容</div> : null}
-            </div>
+        <section className={`${styles.bentoCard} ${styles.radarCard}`}>
+          <div className={styles.cardTitleRow}>
+            <h2>附近雷达</h2>
+            <button type="button" onClick={locateMe}>重新定位</button>
           </div>
-
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}>
-              <span>热门讨论</span>
-              <small>来自 Feed 标签聚合</small>
-            </div>
-            <div className={styles.topicCloud}>
-              {topicStats.map((topic) => (
-                <Link key={topic.label} to={`/search?q=${encodeURIComponent(topic.label)}`}>
-                  #{topic.label}
-                  <span>{topic.count}</span>
-                </Link>
-              ))}
-              {!topicStats.length ? <span className={styles.stateLine}>暂无可聚合标签</span> : null}
-            </div>
+          <div className={styles.radar}>
+            <span className={styles.radarDot} />
+            <span className={styles.radarDot} />
+            <span className={styles.radarDot} />
           </div>
-        </aside>
+          <p className={styles.locationText}>{locationText}</p>
+          {nearbyError ? <div className={styles.inlineError}>{nearbyError}</div> : null}
+          {nearbyLoading ? <div className={styles.stateLine}>正在加载附近内容...</div> : null}
+        </section>
 
-        <section className={styles.feedColumn}>
-          {error ? <div className={styles.errorCard}>{error}</div> : null}
-
-          {featured ? (
-            <Link to={`/post/${featured.id}`} className={styles.featuredCard}>
-              <div className={styles.featuredVisual}>
-                {featured.coverImage ? <img src={featured.coverImage} alt={featured.title} /> : <span>{getInitial(featured.authorNickname)}</span>}
-              </div>
-              <div className={styles.featuredContent}>
-                <div className={styles.featuredMeta}>
-                  <span>今日置顶灵感</span>
-                  <small>{typeof featured.hotScore === "number" ? `热度 ${featured.hotScore.toFixed(1)}` : "真实 Feed 推荐"}</small>
-                </div>
-                <h2>{featured.title}</h2>
-                <p>{featured.description || "这条内容暂未填写摘要，进入详情可查看完整信息。"}</p>
-                <div className={styles.featuredFooter}>
-                  <div className={styles.authorMini}>
-                    <span>{getInitial(featured.authorNickname)}</span>
-                    <strong>{featured.authorNickname}</strong>
-                  </div>
-                  <LikeFavBar
-                    entityId={featured.id}
-                    compact
-                    initialCounts={{ like: featured.likeCount ?? 0, fav: featured.favoriteCount ?? 0 }}
-                    initialState={{ liked: featured.liked, faved: featured.faved }}
-                  />
-                </div>
-              </div>
-            </Link>
-          ) : null}
-
-          <div className={styles.sectionHeading}>
+        <section className={`${styles.bentoCard} ${styles.feedCard}`}>
+          {error ? <div className={styles.errorPill}>请求失败：{error}</div> : null}
+          <div className={styles.feedHeader}>
             <div>
               <span>Neighborhood Feed</span>
               <h2>附近正在发生什么</h2>
             </div>
             <Link to="/discover">查看附近</Link>
           </div>
-
-          <div className={styles.masonry}>
-            {feedItems.map((item) => (
-              <div key={item.id} className={styles.masonryItem}>
-                <CourseCard
-                  id={item.id}
-                  title={item.title}
-                  summary={item.description ?? ""}
-                  tags={item.tags ?? []}
-                  teacher={{ name: item.authorNickname, avatarUrl: item.authorAvatar ?? item.authorAvator }}
-                  coverImage={item.coverImage}
-                  to={`/post/${item.id}`}
-                  isTop={item.isTop}
-                  className={styles.feedCard}
-                  footerExtra={(
-                    <div className={styles.cardFooter}>
-                      <span>{formatDistance(item.distanceMeters)}</span>
-                      <LikeFavBar
-                        entityId={item.id}
-                        compact
-                        initialCounts={{ like: item.likeCount ?? 0, fav: item.favoriteCount ?? 0 }}
-                        initialState={{ liked: item.liked, faved: item.faved }}
-                      />
-                    </div>
-                  )}
+          <div className={styles.feedTiles}>
+            {neighborhoodItems.map((item) => (
+              <article key={item.id} className={styles.feedTile}>
+                <Link to={`/post/${item.id}`} className={styles.feedTileMain}>
+                  <span>{getInitial(item.authorNickname)}</span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.description || "这条内容暂未填写摘要，进入详情可查看完整信息。"}</p>
+                    <small>{formatDistance(item.distanceMeters)}</small>
+                  </div>
+                </Link>
+                <LikeFavBar
+                  entityId={item.id}
+                  compact
+                  initialCounts={{ like: item.likeCount ?? 0, fav: item.favoriteCount ?? 0 }}
+                  initialState={{ liked: item.liked, faved: item.faved }}
                 />
-              </div>
+              </article>
             ))}
-            {feedLoading ? <div className={styles.loadingCard}>正在加载首页内容...</div> : null}
-            {!feedLoading && !items.length ? <div className={styles.emptyCard}>暂时还没有可展示的真实 Feed 内容</div> : null}
+            {!feedLoading && !neighborhoodItems.length ? (
+              <div className={styles.emptyFeed}>暂时还没有可展示的真实 Feed 内容</div>
+            ) : null}
+            {feedLoading ? <div className={styles.emptyFeed}>正在加载首页内容...</div> : null}
+          </div>
+          <div className={styles.topicStrip}>
+            {topicStats.map((topic) => (
+              <Link key={topic.label} to={`/search?q=${encodeURIComponent(topic.label)}`}>
+                #{topic.label}<span>{topic.count}</span>
+              </Link>
+            ))}
           </div>
         </section>
 
-        <aside className={styles.rightRail}>
-          <div className={styles.aiPanel}>
-            <div className={styles.aiOrb}>AI</div>
-            <span>邻里 AI 简报</span>
-            <h3>先基于真实 Feed 本地归纳</h3>
-            <p>当前后端没有独立简报接口，因此这里不会伪造接口结果；后续可接入 RAG 流式问答增强。</p>
-            <ul>
-              {briefLines.map((line) => <li key={line}>{line}</li>)}
-            </ul>
-            <Link to="/search">去搜索页提问</Link>
-          </div>
-
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}>
-              <span>开发接入状态</span>
-            </div>
-            <div className={styles.statusList}>
-              <div><strong>Feed</strong><span>/api/v1/feed/home</span></div>
-              <div><strong>附近</strong><span>/api/v1/discover/nearby</span></div>
-              <div><strong>互动</strong><span>/api/v1/interactions/targets</span></div>
-            </div>
-          </div>
+        <aside className={`${styles.bentoCard} ${styles.aiCard}`}>
+          <div className={styles.aiOrb}>AI</div>
+          <span>邻里 AI 简报</span>
+          <h2>先基于真实 Feed 本地归纳</h2>
+          <p>当前后端没有独立简报接口，因此这里不会伪造接口结果；后续可接入 RAG 流式问答增强。</p>
+          <ul>
+            {briefLines.map((line) => <li key={line}>{line}</li>)}
+          </ul>
+          <Link to="/search">去搜索页提问</Link>
         </aside>
+
+        <section className={`${styles.bentoCard} ${styles.nearbyStrip}`}>
+          <span>Nearby Index</span>
+          <div>
+            {visibleNearbyItems.map((item) => (
+              <Link key={`${item.entityType}-${item.id}`} to={item.entityType === "post" ? `/post/${item.id}` : "/discover"}>
+                <strong>{item.title}</strong>
+                <small>{formatDistance(item.distance)} · {item.address || item.authorName}</small>
+              </Link>
+            ))}
+            {!nearbyLoading && !visibleNearbyItems.length ? <small>当前范围暂无附近内容</small> : null}
+          </div>
+        </section>
       </section>
     </main>
   );

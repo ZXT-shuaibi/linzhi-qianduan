@@ -32,6 +32,11 @@
     #f2efec;
 }
 
+.visualPanel.visualPanel:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .marqueeStage {
   position: absolute;
   inset: -110px -34px;
@@ -70,6 +75,11 @@
   gap: 10px;
   flex-direction: column;
   color: rgba(21, 29, 43, 0.68);
+}
+
+.floatCard.floatCard:hover {
+  transform: scale(1.012) !important;
+  box-shadow: 0 30px 58px rgba(230, 126, 34, 0.13) !important;
 }
 
 .cardCompact {
@@ -198,8 +208,13 @@
 
 .glassPanel:hover {
   background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 36px 92px rgba(120, 95, 70, 0.16), 0 18px 48px rgba(230, 126, 34, 0.1);
-  transform: scale(1.018);
+  box-shadow: 0 36px 92px rgba(120, 95, 70, 0.16), 0 18px 48px rgba(230, 126, 34, 0.1) !important;
+  transform: scale(1.018) !important;
+}
+
+.glassPanel.glassPanel :where([class*="Card"], [class*="card"], [class*="Panel"], [class*="panel"]):hover {
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .brandScript {

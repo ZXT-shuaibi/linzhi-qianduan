@@ -117,15 +117,18 @@ const DiscoverPage = () => {
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <span>Location Based Discovery</span>
-          <h1>把附近的人、内容和小店放在一张温暖地图上。</h1>
-          <p>
-            发现页直接调用 `linli` 的 `/api/v1/discover/nearby`，保留半径、类型和定位能力。
-            没有后端数据时展示真实空态，不用假卡片撑场面。
+          <span className={styles.heroKicker}><span aria-hidden="true">📍</span> LOCATION BASED DISCOVERY</span>
+          <h1 className={styles.discoveryTitle}>
+            重新<span>发现</span><br />
+            让有趣的灵魂与宝藏小店<br />
+            在地图上<em>相遇</em>
+          </h1>
+          <p className={styles.discoveryIntro}>
+            基于 LBS 实时索引附近内容，把帖子、互助与小店整理成一张更有温度的社区地图。
           </p>
           <div className={styles.heroActions}>
-            <button type="button" onClick={locateMe}>使用我的位置</button>
-            <Link to="/create">发布附近动态</Link>
+            <button type="button" onClick={locateMe}><span aria-hidden="true">📍</span>使用我的位置</button>
+            <Link to="/create"><span aria-hidden="true">🔔</span>发布附近动态</Link>
           </div>
         </div>
 

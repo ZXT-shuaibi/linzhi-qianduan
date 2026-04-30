@@ -2,6 +2,12 @@
   width: min(446px, 100%);
 }
 
+.card,
+.card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .securityBadge {
   width: fit-content;
   margin-bottom: 22px;
@@ -143,8 +149,8 @@
 }
 
 .codeButton:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 26px rgba(230, 126, 34, 0.12);
+  transform: none !important;
+  box-shadow: none;
 }
 
 .codeButton:disabled {
@@ -200,8 +206,8 @@
 }
 
 .submitButton:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 28px 58px rgba(230, 126, 34, 0.3);
+  transform: none !important;
+  box-shadow: 0 22px 40px rgba(230, 126, 34, 0.22);
 }
 
 .submitButton:disabled {

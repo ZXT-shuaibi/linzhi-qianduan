@@ -502,6 +502,21 @@
   background: rgba(255, 255, 255, 0.5);
 }
 
+.formPanel,
+.formPanel:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.formPanel.formPanel :where([class*="Card"], [class*="card"], [class*="Panel"], [class*="panel"]):hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.formPanel.formPanel :where(button, input, label, [role="button"]):hover {
+  transform: none !important;
+}
+
 @keyframes authMarqueeUp {
   from {
     transform: translateY(0);

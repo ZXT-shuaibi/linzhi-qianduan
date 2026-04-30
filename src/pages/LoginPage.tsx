@@ -11,11 +11,13 @@ type LocationState = {
 };
 
 type LoginMode = "password" | "code";
+type AuthView = "login" | "register";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading, user } = useAuth();
+  const [authView, setAuthView] = useState<AuthView>("login");
   const [mode, setMode] = useState<LoginMode>("password");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -41,9 +43,17 @@ const LoginPage = () => {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
+  const switchMode = (nextMode: LoginMode) => {
+    setMode(nextMode);
+    setError(null);
+    setMessage(null);
+  };
+
   const handleSendCode = async () => {
-    if (!identifier.trim()) {
-      setError("请先填写手机号或账号");
+    const phone = identifier.trim();
+
+    if (!/^1\d{10}$/.test(phone)) {
+      setError("请先填写 11 位手机号");
       return;
     }
 
@@ -52,7 +62,7 @@ const LoginPage = () => {
     setSendingCode(true);
     try {
       const result = await authService.sendCode({
-        identifier: identifier.trim(),
+        identifier: phone,
         scene: "login"
       });
       setSmsCode(result.code ?? "");
@@ -71,12 +81,18 @@ const LoginPage = () => {
     setMessage(null);
     setSubmitting(true);
     try {
-      const payload: LoginRequest = {
-        identifier: identifier.trim(),
-        password,
-        channel: "H5",
-        captchaCode: mode === "code" ? smsCode.trim() : undefined
-      };
+      const trimmedIdentifier = identifier.trim();
+      const payload: LoginRequest = mode === "password"
+        ? {
+            identifier: trimmedIdentifier,
+            password,
+            channel: "H5"
+          }
+        : {
+            identifier: trimmedIdentifier,
+            channel: "H5",
+            captchaCode: smsCode.trim()
+          };
       await login(payload);
       navigate(from, { replace: true });
     } catch (err) {
@@ -88,97 +104,118 @@ const LoginPage = () => {
 
   const isDisabled = submitting
     || !identifier.trim()
-    || !password.trim()
-    || (mode === "code" && !smsCode.trim());
+    || (mode === "password" ? !password.trim() : !smsCode.trim());
 
   return (
     <AuthExperience>
       <section className={styles.card}>
-        <div className={styles.tabs} aria-label="登录方式">
-          <button
-            type="button"
-            className={`${styles.tab} ${mode === "password" ? styles.tabActive : ""}`}
-            onClick={() => setMode("password")}
-          >
-            密码登录
-          </button>
-          <button
-            type="button"
-            className={`${styles.tab} ${mode === "code" ? styles.tabActive : ""}`}
-            onClick={() => setMode("code")}
-          >
-            验证码登录
-          </button>
+        <div className={styles.securityBadge}>
+          <span />
+          SSL 安全加密连接
         </div>
 
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <input
-              className={styles.input}
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              placeholder="手机号或账号"
-              autoComplete="username"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <input
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="访问口令"
-              autoComplete="current-password"
-            />
-          </div>
-
-          {mode === "code" ? (
-            <div className={styles.fieldGroup}>
-              <div className={styles.codeRow}>
-                <input
-                  className={styles.input}
-                  value={smsCode}
-                  onChange={(event) => setSmsCode(event.target.value)}
-                  placeholder="验证码"
-                  autoComplete="one-time-code"
-                />
+        <div className={styles.moduleViewport}>
+          <div className={`${styles.moduleSlider} ${authView === "register" ? styles.moduleSliderRegister : ""}`}>
+            <div className={styles.modulePane}>
+              <div className={styles.tabs} aria-label="登录方式">
                 <button
                   type="button"
-                  className={styles.codeButton}
-                  disabled={sendingCode || countdown > 0}
-                  onClick={() => void handleSendCode()}
+                  className={`${styles.tab} ${mode === "password" ? styles.tabActive : ""}`}
+                  onClick={() => switchMode("password")}
                 >
-                  {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
+                  密码登录
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.tab} ${mode === "code" ? styles.tabActive : ""}`}
+                  onClick={() => switchMode("code")}
+                >
+                  验证码登录
                 </button>
               </div>
-              <p className={styles.inlineHelp}>当前后端真实接口将验证码作为安全校验，仍需要同时提交访问口令。</p>
+
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.field}>
+                  <input
+                    className={styles.input}
+                    value={identifier}
+                    onChange={(event) => setIdentifier(event.target.value)}
+                    placeholder={mode === "password" ? "账号" : "手机号"}
+                    autoComplete={mode === "password" ? "username" : "tel"}
+                  />
+                </div>
+
+                {mode === "password" ? (
+                  <div className={styles.field}>
+                    <input
+                      className={styles.input}
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="密码"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                ) : (
+                  <div className={styles.fieldGroup}>
+                    <div className={styles.codeRow}>
+                      <input
+                        className={styles.input}
+                        value={smsCode}
+                        onChange={(event) => setSmsCode(event.target.value)}
+                        placeholder="验证码"
+                        autoComplete="one-time-code"
+                      />
+                      <button
+                        type="button"
+                        className={styles.codeButton}
+                        disabled={sendingCode || countdown > 0}
+                        onClick={() => void handleSendCode()}
+                      >
+                        {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.rowBetween}>
+                  <label className={styles.checkboxRow}>
+                    <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+                    保持登录状态
+                  </label>
+                  <button type="button" className={styles.textButton} onClick={() => switchMode("code")}>
+                    忘记了？
+                  </button>
+                </div>
+
+                {error ? <div className={styles.error}>{error}</div> : null}
+                {message ? <div className={styles.success}>{message}</div> : null}
+
+                <button type="submit" className={styles.submitButton} disabled={isDisabled}>
+                  {submitting ? "开启中..." : "开启邻里之光"}
+                </button>
+              </form>
+
+              <div className={styles.secondaryActions}>
+                还没有加入邻里？
+                <button type="button" onClick={() => setAuthView("register")}>
+                  立即入驻
+                </button>
+              </div>
             </div>
-          ) : null}
 
-          <div className={styles.rowBetween}>
-            <label className={styles.checkboxRow}>
-              <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
-              保持登录状态
-            </label>
-            <button type="button" className={styles.textButton} onClick={() => setMode("code")}>
-              忘记了？
-            </button>
+            <div className={`${styles.modulePane} ${styles.registerPane}`}>
+              <span className={styles.registerEyebrow}>入驻邻里</span>
+              <h2>用手机号创建你的社区身份。</h2>
+              <p>注册模块已预留滑动切换位，继续后进入完整入驻流程。</p>
+              <button type="button" className={styles.submitButton} onClick={() => navigate("/register", { state: { from } })}>
+                继续入驻
+              </button>
+              <button type="button" className={styles.backButton} onClick={() => setAuthView("login")}>
+                返回登录
+              </button>
+            </div>
           </div>
-
-          {error ? <div className={styles.error}>{error}</div> : null}
-          {message ? <div className={styles.success}>{message}</div> : null}
-
-          <button type="submit" className={styles.submitButton} disabled={isDisabled}>
-            {submitting ? "开启中..." : "开启邻里之光"}
-          </button>
-        </form>
-
-        <div className={styles.secondaryActions}>
-          还没有加入邻里？
-          <button type="button" onClick={() => navigate("/register", { state: { from } })}>
-            立即入驻
-          </button>
         </div>
       </section>
     </AuthExperience>

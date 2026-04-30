@@ -33,7 +33,7 @@ export type RegisterResponse = {
 
 export type LoginRequest = {
   identifier: string;
-  password: string;
+  password?: string;
   channel?: string;
   captchaCode?: string;
 };

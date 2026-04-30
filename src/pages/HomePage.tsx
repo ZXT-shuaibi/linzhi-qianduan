@@ -161,14 +161,26 @@ const HomePage = () => {
 
       <section className={styles.bentoGrid} aria-label="邻里知光首页仪表盘">
         <section className={`${styles.bentoCard} ${styles.heroCard}`}>
-          <span className={styles.eyebrow}>Community Dashboard</span>
-          <h1>
-            让社区里的 <span>经验、手艺</span> 和好去处自然发光。
+          <div className={styles.heroTopline}>
+            <span className={styles.eyebrow}>COMMUNITY DASHBOARD</span>
+            <span className={styles.heroStatus}>实时聚合</span>
+          </div>
+          <h1 className={styles.heroHeadline}>
+            今天附近，<span>有新鲜事。</span>
           </h1>
-          <p>
-            首页内容来自 `linli` 的 `/api/v1/feed/home`，附近雷达来自 `/api/v1/discover/nearby`。
-            我们把真实数据组织成更有呼吸感的城市社区首页。
+          <p className={styles.heroDescription}>
+            聚合真实 Feed 与 LBS 附近索引，把闲置、互助和讨论整理成一张更清爽的社区首页。
           </p>
+          <div className={styles.heroBriefs}>
+            <div>
+              <span>今日关注</span>
+              <strong>{topicStats[0]?.label ? `#${topicStats[0].label}` : "等待社区动态"}</strong>
+            </div>
+            <div>
+              <span>当前位置</span>
+              <strong>{locationLabel}</strong>
+            </div>
+          </div>
           <div className={styles.heroActions}>
             <Link to="/create" className={styles.primaryAction}>发布一条动态</Link>
             <button type="button" className={styles.secondaryAction} onClick={locateMe}>使用我的位置</button>

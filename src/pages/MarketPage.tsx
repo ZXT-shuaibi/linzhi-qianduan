@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CommunityTopNav from "@/components/layout/CommunityTopNav";
 import { useAuth } from "@/context/AuthContext";
@@ -156,24 +156,59 @@ const MarketPage = () => {
     }
   };
 
+  const heroMetrics = useMemo(() => {
+    const activeCount = activities.filter((item) => item.active).length;
+    const pendingCount = orders.filter((order) => order.status === "PENDING_PAYMENT").length;
+    const paidIncome = orders
+      .filter((order) => order.status === "PAID")
+      .reduce((sum, order) => sum + order.amount, 0);
+
+    return [
+      { icon: "▣", value: activities.length, label: "活动", hint: "已发布", tone: "green" },
+      { icon: "▤", value: pendingCount || orders.length, label: "订单", hint: pendingCount ? "待处理" : "进行中", tone: "blue" },
+      { icon: "▰", value: Math.round(paidIncome), label: "元", hint: "本周收入", tone: "orange" },
+      { icon: "●", value: activeCount, label: "进行中", hint: "可下单", tone: "amber" }
+    ];
+  }, [activities, orders]);
+
   return (
     <main className={styles.shell}>
       <CommunityTopNav locationLabel="邻知市集" />
 
       <section className={styles.hero}>
-        <div>
+        <div className={styles.heroCopy}>
           <span>Community Market</span>
-          <h1>把附近活动做成可信赖的轻量交易。</h1>
+          <h1 className={styles.marketTitle}>
+            <span className={styles.titleLine}>让附近活动</span>
+            <span className={styles.titleLine}>变成<span className={styles.titleAccent}>可信赖</span>的轻量交易</span>
+          </h1>
           <p>活动、下单、模拟支付、取消和我的订单均使用 `linli` 交易接口；优惠券先保留真实空态。</p>
         </div>
+        <div className={styles.heroIllustration} aria-hidden="true">
+          <span className={styles.heroCloud} />
+          <span className={styles.heroCloud} />
+          <span className={styles.heroPlant} />
+          <span className={styles.heroBag}><span>★</span></span>
+        </div>
         <div className={styles.heroStats}>
-          <div><strong>{activities.length}</strong><span>活动</span></div>
-          <div><strong>{orders.length}</strong><span>我的订单</span></div>
-          <div><strong>{activities.filter((item) => item.active).length}</strong><span>进行中</span></div>
+          {heroMetrics.slice(0, 3).map((item) => (
+            <div key={item.label} className={styles[`metric${item.tone}`]}>
+              <span className={styles.metricIcon}>{item.icon}</span>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+              <small>{item.hint}</small>
+            </div>
+          ))}
         </div>
       </section>
 
-      {error ? <div className={styles.error}>{error}</div> : null}
+      {error ? (
+        <div className={styles.error}>
+          <span aria-hidden="true">⌬</span>
+          <strong>{error}</strong>
+          <button type="button" onClick={() => void loadActivities()}>重新加载</button>
+        </div>
+      ) : null}
       {message ? <div className={styles.message}>{message}</div> : null}
 
       <section className={styles.marketGrid}>
@@ -232,28 +267,63 @@ const MarketPage = () => {
           </div>
 
           {loading ? <div className={styles.stateCard}>正在加载活动...</div> : null}
-          {!loading && activities.length === 0 ? <div className={styles.stateCard}>暂无可展示的真实活动。</div> : null}
+          {!loading && activities.length === 0 ? (
+            <div className={styles.emptyMarket}>
+              <div className={styles.emptyBox} aria-hidden="true">
+                <span />
+              </div>
+              <h3>还没有活动</h3>
+              <p>去发布你的第一个市集活动吧，让更多邻里发现你的好物与服务。</p>
+              <button type="button" onClick={() => navigate("/create")}>＋ 发布活动</button>
+            </div>
+          ) : null}
         </div>
 
         <aside className={styles.orderColumn}>
           <div className={styles.couponPanel}>
-            <span>Coupon Center</span>
-            <h2>优惠券接口未接入</h2>
-            <p>当前 `linli` 后端没有优惠券/卡券接口，因此这里不提供假领取按钮。</p>
+            <div className={styles.sideHeader}>
+              <div>
+                <span>Coupon Center</span>
+                <h2>优惠券中心</h2>
+              </div>
+              <small>更多 〉</small>
+            </div>
+            <div className={styles.couponEmpty}>
+              <span aria-hidden="true">✦</span>
+              <div>
+                <strong>暂无可用优惠券</strong>
+                <p>关注活动或完成任务，领取更多优惠。</p>
+              </div>
+              <button type="button" disabled>去领取</button>
+            </div>
           </div>
 
           <div className={styles.ordersPanel}>
-            <div className={styles.sectionBar}>
+            <div className={styles.sideHeader}>
               <div>
                 <span>Orders</span>
                 <h2>我的订单</h2>
               </div>
+              <small>更多 〉</small>
             </div>
 
             {!user ? (
-              <div className={styles.stateCard}>登录后可以查看待支付和已完成订单。</div>
+              <div className={styles.orderLoginCard}>
+                <span aria-hidden="true">▤</span>
+                <div>
+                  <strong>登录后查看订单状态</strong>
+                  <p>登录后可以查看待支付和已完成订单。</p>
+                </div>
+                <button type="button" onClick={requireLogin}>去登录</button>
+              </div>
             ) : orders.length === 0 ? (
-              <div className={styles.stateCard}>你还没有订单，先去挑一个活动吧。</div>
+              <div className={styles.orderLoginCard}>
+                <span aria-hidden="true">▤</span>
+                <div>
+                  <strong>暂时还没有订单</strong>
+                  <p>挑一个感兴趣的活动，订单会自动同步到这里。</p>
+                </div>
+              </div>
             ) : (
               <div className={styles.orderList}>
                 {orders.map((order) => (

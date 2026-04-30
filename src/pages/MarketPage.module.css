@@ -596,3 +596,571 @@
 .modalOverlay {
   background: rgba(45, 52, 54, 0.28);
 }
+
+/* Prototype refresh: warm SaaS marketplace dashboard. */
+.hero {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px minmax(360px, 540px);
+  gap: 34px;
+  min-height: 258px;
+  padding: 38px 46px;
+  overflow: hidden;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 54% 102%, rgba(255, 183, 91, 0.22), transparent 26%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 243, 0.9));
+}
+
+.heroCopy {
+  position: relative;
+  z-index: 1;
+}
+
+.heroCopy > span {
+  color: var(--linzhi-primary);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 620px;
+  margin-top: 14px;
+  color: #1f2937;
+  font-size: clamp(34px, 3.6vw, 48px);
+  font-weight: 950;
+  line-height: 1.22;
+  letter-spacing: -0.045em;
+}
+
+.hero h1 span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+.hero h1 .titleAccent {
+  color: var(--linzhi-primary);
+}
+
+.heroActions button span,
+.heroActions a span,
+.heroBag span,
+.metricIcon {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.hero p {
+  max-width: 620px;
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.heroIllustration {
+  position: relative;
+  min-height: 180px;
+  align-self: end;
+}
+
+.heroIllustration::before {
+  content: "";
+  position: absolute;
+  left: -34px;
+  right: -34px;
+  bottom: -48px;
+  height: 118px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, rgba(255, 233, 199, 0.68), rgba(255, 245, 231, 0.16));
+}
+
+.heroCloud {
+  position: absolute;
+  width: 52px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.heroCloud:nth-child(1) {
+  left: 16px;
+  top: 54px;
+}
+
+.heroCloud:nth-child(2) {
+  right: 30px;
+  top: 26px;
+  width: 44px;
+}
+
+.heroPlant {
+  position: absolute;
+  left: 82px;
+  bottom: 28px;
+  width: 26px;
+  height: 62px;
+  border-radius: 14px 14px 4px 4px;
+  background: #fff;
+  box-shadow: inset 0 -18px 0 #f1e8d8;
+}
+
+.heroPlant::before,
+.heroPlant::after {
+  content: "";
+  position: absolute;
+  bottom: 34px;
+  width: 24px;
+  height: 40px;
+  border-radius: 999px 999px 0 999px;
+  background: #83c35d;
+}
+
+.heroPlant::before {
+  left: -18px;
+  transform: rotate(-22deg);
+}
+
+.heroPlant::after {
+  right: -18px;
+  transform: rotate(26deg) scale(0.88);
+}
+
+.heroBag {
+  position: absolute;
+  left: 122px;
+  bottom: 22px;
+  width: 96px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px 18px 24px 24px;
+  color: #fff8ee;
+  background: linear-gradient(135deg, #ffb54f 0%, #f97316 100%);
+  box-shadow: 0 20px 38px rgba(249, 115, 22, 0.26);
+}
+
+.heroBag::before {
+  content: "";
+  position: absolute;
+  top: -28px;
+  width: 52px;
+  height: 50px;
+  border: 7px solid #ffb83f;
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+}
+
+.heroBag span {
+  font-size: 36px;
+  line-height: 1;
+  filter: drop-shadow(0 8px 12px rgba(143, 80, 22, 0.18));
+}
+
+.heroStats {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-self: center;
+}
+
+.heroStats div {
+  min-height: 138px;
+  padding: 24px;
+  border: 1px solid rgba(230, 126, 34, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 34px rgba(83, 62, 40, 0.06);
+}
+
+.metricIcon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.metricgreen .metricIcon {
+  color: #27ae60;
+  background: rgba(39, 174, 96, 0.12);
+}
+
+.metricblue .metricIcon {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.metricorange .metricIcon {
+  color: var(--linzhi-primary);
+  background: var(--linzhi-primary-soft);
+}
+
+.heroStats strong {
+  display: inline;
+  color: #1f2937;
+  font-size: 34px;
+  font-weight: 950;
+}
+
+.heroStats div > span:not(.metricIcon) {
+  display: inline;
+  margin-left: 8px;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.heroStats small {
+  display: block;
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 18px 24px;
+  border-color: rgba(230, 126, 34, 0.18);
+  color: #9a5a19;
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 255, 255, 0.88));
+}
+
+.error > span {
+  color: #f59e0b;
+  font-size: 28px;
+}
+
+.error strong {
+  flex: 1;
+}
+
+.error button {
+  border: 1px solid rgba(230, 126, 34, 0.18);
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: var(--linzhi-primary);
+  background: #fff;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.message {
+  margin-top: 18px;
+}
+
+.marketGrid {
+  grid-template-columns: minmax(0, 1fr) 460px;
+  gap: 18px;
+}
+
+.activityColumn,
+.couponPanel,
+.ordersPanel {
+  border: 1px solid rgba(230, 126, 34, 0.1);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 40px rgba(83, 62, 40, 0.06);
+}
+
+.activityColumn {
+  padding: 26px;
+}
+
+.sectionBar h2,
+.couponPanel h2,
+.ordersPanel h2 {
+  color: #1f2937;
+  font-size: 26px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.filterGroup {
+  background: #f8fafc;
+}
+
+.filterGroup .filterActive {
+  color: #fff;
+  background: linear-gradient(135deg, #ff9b3d, #f97316);
+}
+
+.emptyMarket {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  padding: 44px 20px;
+  border: 1px solid rgba(230, 126, 34, 0.1);
+  border-radius: 24px;
+  text-align: center;
+  background: #fff;
+}
+
+.emptyBox {
+  position: relative;
+  width: 96px;
+  height: 74px;
+  margin-bottom: 18px;
+}
+
+.emptyBox::before {
+  content: "";
+  position: absolute;
+  inset: 20px 14px 0;
+  border-radius: 10px 10px 18px 18px;
+  background: linear-gradient(180deg, #f2f4f7, #e8edf2);
+  transform: perspective(80px) rotateX(16deg);
+}
+
+.emptyBox span,
+.emptyBox::after {
+  position: absolute;
+  display: block;
+  border-radius: 4px;
+  background: #cbd5e1;
+  content: "";
+}
+
+.emptyBox span {
+  width: 38px;
+  height: 10px;
+  left: 31px;
+  top: 14px;
+  transform: rotate(-18deg);
+}
+
+.emptyBox::after {
+  width: 44px;
+  height: 10px;
+  right: 7px;
+  top: 4px;
+  transform: rotate(-32deg);
+}
+
+.emptyMarket h3 {
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.emptyMarket p {
+  max-width: 360px;
+  margin-top: 10px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.emptyMarket button {
+  margin-top: 18px;
+  border: none;
+  border-radius: 999px;
+  padding: 13px 28px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff9b3d, #f97316);
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 16px 30px rgba(249, 115, 22, 0.2);
+}
+
+.sideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sideHeader span {
+  color: var(--linzhi-primary);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sideHeader small {
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.couponEmpty,
+.orderLoginCard {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid rgba(39, 174, 96, 0.14);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.92), rgba(255, 255, 255, 0.9));
+}
+
+.couponEmpty > span,
+.orderLoginCard > span {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #27ae60;
+  background: rgba(39, 174, 96, 0.12);
+  font-size: 24px;
+}
+
+.couponEmpty strong,
+.orderLoginCard strong {
+  color: #1f2937;
+  font-size: 16px;
+}
+
+.couponEmpty p,
+.orderLoginCard p {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.couponEmpty button,
+.orderLoginCard button {
+  border: 1px solid rgba(39, 174, 96, 0.24);
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: #27ae60;
+  background: #fff;
+  font-weight: 950;
+}
+
+.couponEmpty button:disabled {
+  opacity: 0.76;
+}
+
+.orderLoginCard {
+  border-color: rgba(230, 126, 34, 0.14);
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.94), rgba(255, 255, 255, 0.9));
+}
+
+.orderLoginCard > span {
+  color: var(--linzhi-primary);
+  background: var(--linzhi-primary-soft);
+}
+
+.orderLoginCard button {
+  color: var(--linzhi-primary);
+  border-color: rgba(230, 126, 34, 0.24);
+  cursor: pointer;
+}
+
+@media (max-width: 1280px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroIllustration {
+    display: none;
+  }
+
+  .marketGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .heroStats,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activityColumn {
+    padding: 20px;
+  }
+
+  .couponEmpty,
+  .orderLoginCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.marketTitle {
+  max-width: 560px;
+  font-size: clamp(28px, 2.7vw, 38px);
+  line-height: 1.28;
+  letter-spacing: -0.038em;
+}
+
+.titleLine {
+  display: block;
+  color: #1f2937;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.titleAccent {
+  color: var(--linzhi-primary);
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+.hero,
+.heroStats div,
+.activityColumn,
+.activityCard,
+.couponPanel,
+.ordersPanel,
+.stateCard,
+.emptyMarket,
+.orderCard,
+.couponEmpty,
+.orderLoginCard {
+  transform-origin: center;
+  transition:
+    transform 0.48s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.48s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hero:hover,
+.heroStats div:hover,
+.activityColumn:hover,
+.couponPanel:hover,
+.ordersPanel:hover,
+.stateCard:hover,
+.emptyMarket:hover,
+.orderCard:hover,
+.couponEmpty:hover,
+.orderLoginCard:hover {
+  transform: scale(1.012);
+  box-shadow: 0 30px 58px rgba(230, 126, 34, 0.13);
+}
+
+.activityCard:hover {
+  transform: translateY(-3px) scale(1.012);
+  box-shadow: 0 30px 58px rgba(230, 126, 34, 0.14);
+}
+
+@media (max-width: 720px) {
+  .marketTitle {
+    max-width: 100%;
+    font-size: clamp(27px, 8vw, 36px);
+  }
+
+  .titleLine {
+    white-space: normal;
+  }
+}

@@ -11,6 +11,16 @@ type FollowListResponse = Omit<ProfileListResponse, "items"> & {
   items?: ProfileApiPayload[];
 };
 
+const fetchProfileList = async (path: string, accessToken?: string) => {
+  const response = await apiFetch<FollowListResponse>(path, {
+    accessToken: accessToken ?? null
+  });
+  return {
+    items: (response.items ?? []).map(mapProfileResponse),
+    page: response.page
+  };
+};
+
 export const relationService = {
   follow: async (toUserId: number, accessToken: string) => {
     const result = await apiFetch<{
@@ -53,19 +63,17 @@ export const relationService = {
       accessToken
     }),
 
-  following: async (userId: number, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
-    const response = await apiFetch<FollowListResponse>(`${PROFILE_PREFIX}/users/${userId}/following?page=${page}&size=${size}`, {
-      accessToken: accessToken ?? null
-    });
-    return (response.items ?? []).map(mapProfileResponse);
-  },
+  followingPage: (userId: number, size = 20, page = 1, accessToken?: string) =>
+    fetchProfileList(`${PROFILE_PREFIX}/users/${userId}/following?page=${page}&size=${size}`, accessToken),
 
-  followers: async (userId: number, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
-    const response = await apiFetch<FollowListResponse>(`${PROFILE_PREFIX}/users/${userId}/followers?page=${page}&size=${size}`, {
-      accessToken: accessToken ?? null
-    });
-    return (response.items ?? []).map(mapProfileResponse);
-  },
+  followersPage: (userId: number, size = 20, page = 1, accessToken?: string) =>
+    fetchProfileList(`${PROFILE_PREFIX}/users/${userId}/followers?page=${page}&size=${size}`, accessToken),
+
+  following: async (userId: number, size = 20, page = 1, _cursor?: number, accessToken?: string) =>
+    (await relationService.followingPage(userId, size, page, accessToken)).items,
+
+  followers: async (userId: number, size = 20, page = 1, _cursor?: number, accessToken?: string) =>
+    (await relationService.followersPage(userId, size, page, accessToken)).items,
 
   counters: (userId: number, accessToken: string) =>
     apiFetch<RelationCountersResponse>(`${SOCIAL_PREFIX}/counters/users/${userId}`, {

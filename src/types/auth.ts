@@ -17,9 +17,10 @@ export type SendCodeResponse = {
 
 export type RegisterRequest = {
   phone: string;
-  account: string;
+  account?: string;
   password: string;
-  nickname: string;
+  confirmPassword: string;
+  nickname?: string;
   smsCode: string;
 };
 
@@ -35,7 +36,21 @@ export type LoginRequest = {
   identifier: string;
   password?: string;
   channel?: string;
+  smsCode?: string;
   captchaCode?: string;
+};
+
+export type PasswordResetRequest = {
+  phone: string;
+  smsCode: string;
+  newPassword: string;
+};
+
+export type ActionResult = {
+  success: boolean;
+  action: string;
+  resourceId: string;
+  status: string;
 };
 
 export type AuthTokens = {

@@ -13,8 +13,6 @@ const RegisterPage = () => {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState("");
-  const [account, setAccount] = useState("");
-  const [nickname, setNickname] = useState("");
   const [smsCode, setSmsCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -74,12 +72,6 @@ const RegisterPage = () => {
       setError("请输入 6 位验证码");
       return;
     }
-    if (!account.trim()) {
-      setAccount(`linli_${phone.trim().slice(-4)}`);
-    }
-    if (!nickname.trim()) {
-      setNickname(`邻里用户${phone.trim().slice(-4)}`);
-    }
     setStep(2);
   };
 
@@ -92,14 +84,6 @@ const RegisterPage = () => {
 
     setError(null);
     setMessage(null);
-    if (!/^[A-Za-z0-9_]{4,32}$/.test(account.trim())) {
-      setError("账号必须为 4 到 32 位字母、数字或下划线");
-      return;
-    }
-    if (!nickname.trim()) {
-      setError("请填写昵称");
-      return;
-    }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
       setError("访问口令至少 8 位，并同时包含字母和数字");
       return;
@@ -113,10 +97,9 @@ const RegisterPage = () => {
     try {
       const payload: RegisterRequest = {
         phone: phone.trim(),
-        account: account.trim(),
-        nickname: nickname.trim(),
         smsCode: smsCode.trim(),
-        password
+        password,
+        confirmPassword
       };
       await register(payload);
       setMessage("入驻成功，正在进入邻里知光");
@@ -132,8 +115,6 @@ const RegisterPage = () => {
 
   const stepOneDisabled = !phone.trim() || !smsCode.trim();
   const stepTwoDisabled = submitting
-    || !account.trim()
-    || !nickname.trim()
     || !password.trim()
     || !confirmPassword.trim();
 
@@ -181,25 +162,6 @@ const RegisterPage = () => {
             </>
           ) : (
             <>
-              <div className={styles.field}>
-                <label className={styles.label}>账号</label>
-                <input
-                  className={styles.input}
-                  value={account}
-                  onChange={(event) => setAccount(event.target.value)}
-                  placeholder="4-32 位字母、数字或下划线"
-                  autoComplete="username"
-                />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>昵称</label>
-                <input
-                  className={styles.input}
-                  value={nickname}
-                  onChange={(event) => setNickname(event.target.value)}
-                  placeholder="你的邻里昵称"
-                />
-              </div>
               <div className={styles.field}>
                 <label className={styles.label}>设置访问口令</label>
                 <input

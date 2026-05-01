@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AuthExperience from "@/features/auth/AuthExperience";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
+import { ApiError } from "@/services/apiClient";
 import type { LoginRequest } from "@/types/auth";
 import styles from "./AuthForm.module.css";
 
@@ -12,6 +13,15 @@ type LocationState = {
 
 type LoginMode = "password" | "code";
 type AuthView = "login" | "register";
+
+const isValidLoginIdentifier = (value: string) => /^1\d{10}$/.test(value);
+
+const readErrorCode = (error: unknown) => {
+  if (!(error instanceof ApiError) || typeof error.data !== "object" || error.data === null || !("code" in error.data)) {
+    return null;
+  }
+  return String((error.data as { code?: unknown }).code ?? "");
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -50,10 +60,10 @@ const LoginPage = () => {
   };
 
   const handleSendCode = async () => {
-    const phone = identifier.trim();
+    const loginIdentifier = identifier.trim();
 
-    if (!/^1\d{10}$/.test(phone)) {
-      setError("请先填写 11 位手机号");
+    if (!isValidLoginIdentifier(loginIdentifier)) {
+      setError("请先填写正确的手机号");
       return;
     }
 
@@ -62,7 +72,7 @@ const LoginPage = () => {
     setSendingCode(true);
     try {
       const result = await authService.sendCode({
-        identifier: phone,
+        identifier: loginIdentifier,
         scene: "login"
       });
       setSmsCode(result.code ?? "");
@@ -82,21 +92,30 @@ const LoginPage = () => {
     setSubmitting(true);
     try {
       const trimmedIdentifier = identifier.trim();
-      const payload: LoginRequest = mode === "password"
+      const payload: LoginRequest = mode === "code"
         ? {
-            identifier: trimmedIdentifier,
-            password,
-            channel: "H5"
-          }
+          identifier: trimmedIdentifier,
+          smsCode: smsCode.trim(),
+          channel: "H5"
+        }
         : {
-            identifier: trimmedIdentifier,
-            channel: "H5",
-            captchaCode: smsCode.trim()
-          };
+          identifier: trimmedIdentifier,
+          password,
+          channel: "H5"
+        };
       await login(payload);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "登录失败，请稍后重试");
+      const code = readErrorCode(err);
+      if (code === "AUTH_400_CAPTCHA_REQUIRED") {
+        setMode("code");
+        setError("当前手机号需要验证码确认，请获取验证码后登录");
+      } else {
+        if (code === "AUTH_400_INVALID_CAPTCHA") {
+          setMode("code");
+        }
+        setError(err instanceof Error ? err.message : "登录失败，请稍后重试");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -140,8 +159,8 @@ const LoginPage = () => {
                     className={styles.input}
                     value={identifier}
                     onChange={(event) => setIdentifier(event.target.value)}
-                    placeholder={mode === "password" ? "账号" : "手机号"}
-                    autoComplete={mode === "password" ? "username" : "tel"}
+                    placeholder="手机号"
+                    autoComplete="tel"
                   />
                 </div>
 
@@ -156,7 +175,9 @@ const LoginPage = () => {
                       autoComplete="current-password"
                     />
                   </div>
-                ) : (
+                ) : null}
+
+                {mode === "code" ? (
                   <div className={styles.fieldGroup}>
                     <div className={styles.codeRow}>
                       <input
@@ -176,15 +197,15 @@ const LoginPage = () => {
                       </button>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <div className={styles.rowBetween}>
                   <label className={styles.checkboxRow}>
                     <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
                     保持登录状态
                   </label>
-                  <button type="button" className={styles.textButton} onClick={() => switchMode("code")}>
-                    忘记了？
+                  <button type="button" className={styles.textButton} onClick={() => switchMode(mode === "code" ? "password" : "code")}>
+                    {mode === "code" ? "返回密码登录" : "验证码登录"}
                   </button>
                 </div>
 

@@ -22,10 +22,13 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
   const title = useMemo(() => (mode === "following" ? "关注列表" : "粉丝列表"), [mode]);
   const { tokens } = useAuth();
   const [profiles, setProfiles] = useState<ProfileResponse[]>([]);
-  const [offset, setOffset] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
+
+  const resolveHasMore = (nextPage: { hasNext?: boolean; hasMore?: boolean } | undefined, listLength: number) =>
+    nextPage?.hasNext ?? nextPage?.hasMore ?? listLength >= initialLimit;
 
   useEffect(() => {
     if (!open) return;
@@ -41,14 +44,14 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
       setError(null);
       try {
         const response = mode === "following"
-          ? await relationService.following(userId, initialLimit, 0, undefined, tokens.accessToken)
-          : await relationService.followers(userId, initialLimit, 0, undefined, tokens.accessToken);
+          ? await relationService.followingPage(userId, initialLimit, 1, tokens.accessToken)
+          : await relationService.followersPage(userId, initialLimit, 1, tokens.accessToken);
         if (cancelled) return;
 
-        const list = Array.isArray(response) ? response : [];
+        const list = response.items;
         setProfiles(list);
-        setOffset(list.length);
-        setHasMore(list.length >= initialLimit);
+        setPage(response.page?.page ?? 1);
+        setHasMore(resolveHasMore(response.page, list.length));
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "加载失败");
@@ -77,13 +80,14 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
     setLoading(true);
     setError(null);
     try {
+      const nextPage = page + 1;
       const response = mode === "following"
-        ? await relationService.following(userId, initialLimit, offset, undefined, tokens.accessToken)
-        : await relationService.followers(userId, initialLimit, offset, undefined, tokens.accessToken);
-      const list = Array.isArray(response) ? response : [];
+        ? await relationService.followingPage(userId, initialLimit, nextPage, tokens.accessToken)
+        : await relationService.followersPage(userId, initialLimit, nextPage, tokens.accessToken);
+      const list = response.items;
       setProfiles((current) => [...current, ...list]);
-      setOffset((current) => current + list.length);
-      setHasMore(list.length >= initialLimit);
+      setPage(response.page?.page ?? nextPage);
+      setHasMore(resolveHasMore(response.page, list.length));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {

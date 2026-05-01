@@ -50,6 +50,8 @@ export type ProfileListResponse = {
     page: number;
     size: number;
     hasMore?: boolean;
+    hasNext?: boolean;
     total?: number;
+    totalPages?: number;
   };
 };

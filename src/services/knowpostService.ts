@@ -41,11 +41,14 @@ type FeedItemApi = {
 
 type FeedApiResponse = {
   items?: FeedItemApi[];
-  page?: {
-    page: number;
-    size: number;
-    hasMore: boolean;
+  page?: number | {
+    page?: number;
+    size?: number;
+    hasMore?: boolean;
+    hasNext?: boolean;
   };
+  size?: number;
+  hasMore?: boolean;
   cacheLayer?: string;
 };
 
@@ -71,8 +74,31 @@ type PostDetailApi = {
   publishedAt?: string | null;
 };
 
-const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) =>
-  ({
+const resolvePageNumber = (responsePage: FeedApiResponse["page"], fallback: number) =>
+  typeof responsePage === "object" && responsePage !== null
+    ? responsePage.page ?? fallback
+    : responsePage ?? fallback;
+
+const resolvePageSize = (response: FeedApiResponse, fallback: number) =>
+  typeof response.page === "object" && response.page !== null
+    ? response.page.size ?? response.size ?? fallback
+    : response.size ?? fallback;
+
+const resolveHasMore = (response: FeedApiResponse) => {
+  if (typeof response.hasMore === "boolean") {
+    return response.hasMore;
+  }
+  if (typeof response.page === "object" && response.page !== null) {
+    return response.page.hasMore ?? response.page.hasNext ?? false;
+  }
+  return false;
+};
+
+const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) => {
+  const pageNumber = resolvePageNumber(response.page, page);
+  const pageSize = resolvePageSize(response, size);
+
+  return ({
     items: (response.items ?? []).map((item) =>
       mapFeedPreview({
         id: item.postId,
@@ -93,11 +119,12 @@ const buildFeedResponse = (response: FeedApiResponse, page: number, size: number
         publishedAt: item.publishedAt
       })
     ),
-    page: response.page?.page ?? page,
-    size: response.page?.size ?? size,
-    hasMore: response.page?.hasMore ?? false,
+    page: pageNumber,
+    size: pageSize,
+    hasMore: resolveHasMore(response),
     cacheLayer: response.cacheLayer
   }) satisfies FeedResponse;
+};
 
 export const knowpostService = {
   createDraft: async () => {

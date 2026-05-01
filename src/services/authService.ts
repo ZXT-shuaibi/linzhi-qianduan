@@ -1,9 +1,11 @@
 import { apiFetch } from "./apiClient";
 import { mapAuthenticatedUser, mapProfileResponse, type ProfileApiPayload } from "@/services/mappers/profileMappers";
 import type {
+  ActionResult,
   LoginRequest,
   LoginResponse,
   LogoutRequest,
+  PasswordResetRequest,
   RefreshResponse,
   RegisterRequest,
   RegisterResponse,
@@ -51,6 +53,13 @@ export const authService = {
     apiFetch<RefreshResponse>(`${AUTH_PREFIX}/token/refresh`, {
       method: "POST",
       body: { refreshToken },
+      accessToken: null
+    }),
+
+  resetPassword: (payload: PasswordResetRequest) =>
+    apiFetch<ActionResult>(`${AUTH_PREFIX}/password/reset`, {
+      method: "POST",
+      body: payload,
       accessToken: null
     })
 };

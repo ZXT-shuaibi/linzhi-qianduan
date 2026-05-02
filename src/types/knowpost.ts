@@ -50,7 +50,7 @@ export type FeedItem = {
   authorAvatar?: string;
   authorAvator?: string;
   authorNickname: string;
-  authorId?: number;
+  authorId?: string;
   likeCount?: number;
   favoriteCount?: number;
   liked?: boolean;
@@ -79,7 +79,7 @@ export type KnowpostDetailResponse = {
   tags: string[];
   authorAvatar?: string;
   authorNickname: string;
-  authorId?: number;
+  authorId?: string;
   authorTagJson?: string;
   likeCount: number;
   favoriteCount: number;
@@ -88,7 +88,7 @@ export type KnowpostDetailResponse = {
   isTop: boolean;
   visible: VisibleScope;
   type: string;
-  publishTime?: string;
+  publishedAt?: string;
 };
 
 export type LikeActionResponse = {
@@ -108,4 +108,6 @@ export type CounterResponse = {
     like: number;
     fav: number;
   };
+  liked?: boolean;
+  faved?: boolean;
 };

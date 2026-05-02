@@ -39,7 +39,7 @@ const mapDiscoverItem = (item: DiscoverItemApi): DiscoverItem => ({
   coverUrl: item.coverUrl ?? null,
   address: item.address ?? null,
   tags: item.tags ?? [],
-  authorId: item.authorId ? Number(item.authorId) : undefined,
+  authorId: item.authorId ?? undefined,
   authorName: item.authorName ?? "社区用户",
   authorAvatar: item.authorAvatar ?? null,
   lat: item.lat ?? null,

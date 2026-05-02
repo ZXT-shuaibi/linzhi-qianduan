@@ -119,12 +119,12 @@ const CourseDetailPage = () => {
 
   const images = detail?.images ?? [];
   const activeImage = images[previewIndex] ?? images[0] ?? null;
-  const canFollow = Boolean(detail?.authorId && detail.authorId !== user?.id);
+  const canFollow = Boolean(detail?.authorId && detail.authorId !== user?.userId);
   const publishTime = useMemo(() => {
-    if (!detail?.publishTime) return "发布时间未知";
-    const date = new Date(detail.publishTime);
+    if (!detail?.publishedAt) return "发布时间未知";
+    const date = new Date(detail.publishedAt);
     return Number.isNaN(date.getTime()) ? "发布时间未知" : date.toLocaleString("zh-CN");
-  }, [detail?.publishTime]);
+  }, [detail?.publishedAt]);
 
   const openPreview = (index: number) => {
     setPreviewIndex(index);

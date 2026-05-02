@@ -26,12 +26,14 @@ const mapFollowListResponse = (response: FollowListResponse, page: number, size:
 });
 
 export const relationService = {
-  follow: async (toUserId: number, accessToken: string) => {
+  follow: async (toUserId: string, accessToken: string) => {
     const result = await apiFetch<{
       action?: string;
       active?: boolean;
       following?: boolean;
       followeeId?: string;
+      followerCount?: number;
+      followCount?: number;
     }>(`${FOLLOWS_PREFIX}/${toUserId}`, {
       method: "POST",
       accessToken
@@ -40,16 +42,20 @@ export const relationService = {
     return {
       active: result.following ?? result.active ?? true,
       action: result.action ?? "follow",
-      targetUserId: result.followeeId
+      targetUserId: result.followeeId,
+      followerCount: result.followerCount,
+      followCount: result.followCount
     } satisfies FollowActionResponse;
   },
 
-  unfollow: async (toUserId: number, accessToken: string) => {
+  unfollow: async (toUserId: string, accessToken: string) => {
     const result = await apiFetch<{
       action?: string;
       active?: boolean;
       following?: boolean;
       followeeId?: string;
+      followerCount?: number;
+      followCount?: number;
     }>(`${FOLLOWS_PREFIX}/${toUserId}`, {
       method: "DELETE",
       accessToken
@@ -58,30 +64,32 @@ export const relationService = {
     return {
       active: result.following ?? result.active ?? false,
       action: result.action ?? "unfollow",
-      targetUserId: result.followeeId
+      targetUserId: result.followeeId,
+      followerCount: result.followerCount,
+      followCount: result.followCount
     } satisfies FollowActionResponse;
   },
 
-  status: (toUserId: number, accessToken: string) =>
+  status: (toUserId: string, accessToken: string) =>
     apiFetch<RelationStatusResponse>(`${FOLLOWS_PREFIX}/status?targetUserId=${toUserId}`, {
       accessToken
     }),
 
-  following: async (userId: number, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
+  following: async (userId: string, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
     const response = await apiFetch<FollowListResponse>(`${PROFILE_PREFIX}/users/${userId}/following?page=${page}&size=${size}`, {
       accessToken: accessToken ?? null
     });
     return mapFollowListResponse(response, page, size);
   },
 
-  followers: async (userId: number, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
+  followers: async (userId: string, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
     const response = await apiFetch<FollowListResponse>(`${PROFILE_PREFIX}/users/${userId}/followers?page=${page}&size=${size}`, {
       accessToken: accessToken ?? null
     });
     return mapFollowListResponse(response, page, size);
   },
 
-  counters: (userId: number, accessToken?: string) =>
+  counters: (userId: string, accessToken?: string) =>
     apiFetch<RelationCountersResponse>(`${SOCIAL_PREFIX}/counters/users/${userId}`, {
       accessToken: accessToken ?? null
     })

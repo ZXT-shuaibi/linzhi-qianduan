@@ -87,7 +87,7 @@ const resolveFeedSize = (response: FeedApiResponse, fallbackSize: number) => {
 
 const resolveFeedHasMore = (response: FeedApiResponse) => {
   if (typeof response.hasMore === "boolean") return response.hasMore;
-  if (response.page && typeof response.page === "object") return response.page.hasMore ?? response.page.hasNext ?? false;
+  if (response.page && typeof response.page === "object") return response.page.hasNext ?? response.page.hasMore ?? false;
   return false;
 };
 
@@ -309,7 +309,9 @@ export const knowpostService = {
       counts: {
         like: response.likeCount ?? 0,
         fav: response.favoriteCount ?? 0
-      }
+      },
+      liked: response.viewerLiked,
+      faved: response.viewerFavorited
     } satisfies CounterResponse;
   }
 };

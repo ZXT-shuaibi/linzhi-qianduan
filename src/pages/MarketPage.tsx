@@ -4,12 +4,8 @@ import CommunityTopNav from "@/components/layout/CommunityTopNav";
 import { useAuth } from "@/context/AuthContext";
 import { tradeService } from "@/services/tradeService";
 import type { TradeActivity, TradeOrder } from "@/types/trade";
+import { formatMoney, moneyToCents, roundedYuanFromCents } from "@/utils/money";
 import styles from "./MarketPage.module.css";
-
-const moneyFormatter = new Intl.NumberFormat("zh-CN", {
-  style: "currency",
-  currency: "CNY"
-});
 
 const stageFilters = [
   { value: "", label: "全部" },
@@ -17,8 +13,6 @@ const stageFilters = [
   { value: "upcoming", label: "未开始" },
   { value: "sold_out", label: "已售罄" }
 ] as const;
-
-const formatMoney = (value: number) => moneyFormatter.format(value);
 
 const formatDateTime = (value?: string | null) => {
   if (!value) {
@@ -161,12 +155,12 @@ const MarketPage = () => {
     const pendingCount = orders.filter((order) => order.status === "PENDING_PAYMENT").length;
     const paidIncome = orders
       .filter((order) => order.status === "PAID")
-      .reduce((sum, order) => sum + order.amount, 0);
+      .reduce((sum, order) => sum + moneyToCents(order.amount), 0n);
 
     return [
       { icon: "▣", value: activities.length, label: "活动", hint: "已发布", tone: "green" },
       { icon: "▤", value: pendingCount || orders.length, label: "订单", hint: pendingCount ? "待处理" : "进行中", tone: "blue" },
-      { icon: "▰", value: Math.round(paidIncome), label: "元", hint: "本周收入", tone: "orange" },
+      { icon: "▰", value: roundedYuanFromCents(paidIncome), label: "元", hint: "本周收入", tone: "orange" },
       { icon: "●", value: activeCount, label: "进行中", hint: "可下单", tone: "amber" }
     ];
   }, [activities, orders]);

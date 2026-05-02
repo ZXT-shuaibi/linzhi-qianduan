@@ -74,7 +74,15 @@ const readStoredUser = (): AuthenticatedUser | null => {
   try {
     const raw = localStorage.getItem(USER_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as AuthenticatedUser;
+    const parsed = JSON.parse(raw) as Partial<AuthenticatedUser> & { id?: string | number };
+    const userId = String(parsed.userId ?? parsed.id ?? "");
+    if (!userId || !parsed.nickname) return null;
+    return {
+      ...parsed,
+      id: userId,
+      userId,
+      nickname: parsed.nickname
+    } as AuthenticatedUser;
   } catch {
     return null;
   }

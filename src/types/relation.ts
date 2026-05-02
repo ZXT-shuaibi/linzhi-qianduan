@@ -16,4 +16,6 @@ export type FollowActionResponse = {
   active: boolean;
   action: string;
   targetUserId?: string;
+  followerCount?: number;
+  followCount?: number;
 };

@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import RelationListModal from "./RelationListModal";
 
 type RelationCountersProps = {
-  userId?: number;
+  userId?: string;
 };
 
 const RelationCounters = ({ userId }: RelationCountersProps) => {

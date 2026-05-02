@@ -45,6 +45,12 @@ const LikeFavBar = ({
         if (!cancelled) {
           setLikeCount(response.counts?.like ?? 0);
           setFavCount(response.counts?.fav ?? 0);
+          if (typeof response.liked !== "undefined") {
+            setLiked(Boolean(response.liked));
+          }
+          if (typeof response.faved !== "undefined") {
+            setFaved(Boolean(response.faved));
+          }
         }
       } catch {
         // 计数拉取失败时保留初始值。

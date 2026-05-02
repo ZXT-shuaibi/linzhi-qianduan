@@ -37,7 +37,7 @@ export const mapFeedPreview = (source: PostPreviewSource): FeedItem => ({
   authorAvatar: source.authorAvatar ?? undefined,
   authorAvator: source.authorAvatar ?? undefined,
   authorNickname: source.authorNickname ?? "社区用户",
-  authorId: source.authorId ? Number(source.authorId) : undefined,
+  authorId: source.authorId ?? undefined,
   likeCount: source.likeCount ?? 0,
   favoriteCount: source.favoriteCount ?? 0,
   liked: source.liked ?? false,
@@ -57,7 +57,7 @@ export const mapPostDetail = (source: PostDetailSource): KnowpostDetailResponse 
   tags: source.tags ?? [],
   authorAvatar: source.authorAvatar ?? undefined,
   authorNickname: source.authorNickname ?? "社区用户",
-  authorId: source.authorId ? Number(source.authorId) : undefined,
+  authorId: source.authorId ?? undefined,
   authorTagJson: source.tagJson ?? undefined,
   likeCount: source.likeCount ?? 0,
   favoriteCount: source.favoriteCount ?? 0,
@@ -66,5 +66,5 @@ export const mapPostDetail = (source: PostDetailSource): KnowpostDetailResponse 
   isTop: source.isTop ?? false,
   visible: source.visible ?? "public",
   type: source.type ?? "post",
-  publishTime: source.publishedAt ?? undefined
+  publishedAt: source.publishedAt ?? undefined
 });

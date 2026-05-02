@@ -16,13 +16,14 @@ export type RelationStatus = {
 };
 
 export type ProfileResponse = {
-  id: number;
+  id: string;
   userId: string;
   nickname: string;
   avatar?: string | null;
   bio?: string | null;
   account?: string | null;
   phone?: string | null;
+  email?: string | null;
   gender?: Gender;
   birthday?: string | null;
   school?: string | null;

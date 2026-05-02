@@ -74,7 +74,7 @@ const ProfilePage = () => {
             <div id="profile-data" className={styles.apiPanel}>
               <span>真实接口</span>
               <strong>/api/v1/profile/me</strong>
-              <strong>/api/v1/social/counters/users/{user.id}</strong>
+              <strong>/api/v1/social/counters/users/{user.userId}</strong>
               <strong>/api/v1/posts/mine</strong>
             </div>
           </aside>

@@ -8,7 +8,7 @@ export type DiscoverItem = {
   coverUrl?: string | null;
   address?: string | null;
   tags: string[];
-  authorId?: number;
+  authorId?: string;
   authorName: string;
   authorAvatar?: string | null;
   lat?: number | null;

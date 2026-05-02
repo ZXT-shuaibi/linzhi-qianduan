@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import styles from "./FollowButton.module.css";
 
 type FollowButtonProps = {
-  targetUserId?: number;
+  targetUserId?: string;
   compact?: boolean;
 };
 

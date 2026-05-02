@@ -3,8 +3,11 @@ import { Link } from "react-router-dom";
 import CourseCard from "@/components/cards/CourseCard";
 import LikeFavBar from "@/components/common/LikeFavBar";
 import CommunityTopNav from "@/components/layout/CommunityTopNav";
+import { useAuth } from "@/context/AuthContext";
 import { discoverService } from "@/services/discoverService";
+import { knowpostService } from "@/services/knowpostService";
 import type { DiscoverEntityType, DiscoverItem } from "@/types/discover";
+import type { CounterResponse } from "@/types/knowpost";
 import styles from "./DiscoverPage.module.css";
 
 const DEFAULT_LOCATION = { lat: 31.2304, lng: 121.4737 };
@@ -32,6 +35,7 @@ const formatTime = (value?: string | null) => {
 };
 
 const DiscoverPage = () => {
+  const { tokens } = useAuth();
   const [entityType, setEntityType] = useState<DiscoverEntityType>("mixed");
   const [radius, setRadius] = useState(3000);
   const [items, setItems] = useState<DiscoverItem[]>([]);
@@ -54,14 +58,39 @@ const DiscoverPage = () => {
         size: 30,
         tag: activeTag ?? undefined
       });
-      setItems(response.items ?? []);
+      let nextItems = response.items ?? [];
+      if (tokens?.accessToken && nextItems.length) {
+        const postIds = nextItems.filter((item) => item.entityType === "post").map((item) => item.id);
+        const merchantIds = nextItems.filter((item) => item.entityType === "merchant").map((item) => item.id);
+        const [postCounters, merchantCounters] = await Promise.all([
+          postIds.length
+            ? knowpostService.countersBatch("post", postIds, tokens.accessToken)
+            : Promise.resolve({} as Record<string, CounterResponse>),
+          merchantIds.length
+            ? knowpostService.countersBatch("merchant", merchantIds, tokens.accessToken)
+            : Promise.resolve({} as Record<string, CounterResponse>)
+        ]);
+        nextItems = nextItems.map((item) => {
+          const counters = item.entityType === "post" ? postCounters[item.id] : merchantCounters[item.id];
+          return counters
+            ? {
+                ...item,
+                likeCount: counters.counts.like,
+                favoriteCount: counters.counts.fav,
+                liked: counters.liked,
+                faved: counters.faved
+              }
+            : item;
+        });
+      }
+      setItems(nextItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载附近内容失败");
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [activeTag, entityType, location, radius]);
+  }, [activeTag, entityType, location, radius, tokens?.accessToken]);
 
   useEffect(() => {
     void loadNearby(location);
@@ -238,6 +267,7 @@ const DiscoverPage = () => {
                       entityType="post"
                       compact
                       initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
+                      initialState={{ liked: item.liked, faved: item.faved }}
                     />
                   </div>
                 )}
@@ -305,6 +335,7 @@ const DiscoverPage = () => {
                         entityType="merchant"
                         compact
                         initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
+                        initialState={{ liked: item.liked, faved: item.faved }}
                       />
                     </div>
                   </div>

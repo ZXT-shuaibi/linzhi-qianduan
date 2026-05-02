@@ -75,5 +75,12 @@ export const profileService = {
   me: async () => {
     const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`);
     return mapProfileResponse(response);
+  },
+
+  user: async (userId: string, accessToken?: string | null) => {
+    const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/users/${userId}`, {
+      accessToken: accessToken ?? null
+    });
+    return mapProfileResponse(response);
   }
 };

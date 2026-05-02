@@ -271,7 +271,9 @@ const CourseDetailPage = () => {
                   <strong>{detail.authorNickname}</strong>
                   <small>{publishTime}</small>
                 </div>
-                {canFollow && detail.authorId ? <FollowButton targetUserId={detail.authorId} /> : null}
+                {canFollow && detail.authorId ? (
+                  <FollowButton targetUserId={detail.authorId} initialStatus={detail.authorRelationStatus} />
+                ) : null}
               </div>
 
               <div className={styles.tagList}>

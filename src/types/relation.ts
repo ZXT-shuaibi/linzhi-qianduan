@@ -13,7 +13,7 @@ export type RelationCountersResponse = {
 };
 
 export type FollowActionResponse = {
-  active: boolean;
+  following: boolean;
   action: string;
   targetUserId?: string;
   followerCount?: number;

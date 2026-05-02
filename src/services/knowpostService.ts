@@ -7,11 +7,13 @@ import type {
   FavActionResponse,
   FeedResponse,
   LikeActionResponse,
+  PostLocation,
   PresignRequest,
   PresignResponse,
   UpdateKnowPostRequest,
   VisibleScope
 } from "@/types/knowpost";
+import type { RelationStatus, SocialCounters } from "@/types/profile";
 
 const POSTS_PREFIX = "/api/v1/posts";
 const STORAGE_PREFIX = "/api/v1/storage";
@@ -28,11 +30,14 @@ type FeedItemApi = {
     userId?: string | null;
     nickname?: string | null;
     avatar?: string | null;
+    socialCounters?: SocialCounters;
+    relationStatus?: RelationStatus;
   };
   likeCount?: number | null;
   favoriteCount?: number | null;
   liked?: boolean | null;
   faved?: boolean | null;
+  visibility?: VisibleScope | null;
   distanceMeters?: number | null;
   hotScore?: number | null;
   isTop?: boolean | null;
@@ -44,7 +49,6 @@ type FeedApiResponse = {
   page?: number | {
     page?: number;
     size?: number;
-    hasMore?: boolean;
     hasNext?: boolean;
   };
   size?: number;
@@ -63,6 +67,8 @@ type PostDetailApi = {
     userId?: string | null;
     nickname?: string | null;
     avatar?: string | null;
+    socialCounters?: SocialCounters;
+    relationStatus?: RelationStatus;
   };
   likeCount?: number | null;
   favoriteCount?: number | null;
@@ -71,7 +77,11 @@ type PostDetailApi = {
   isTop?: boolean | null;
   visibility?: VisibleScope | null;
   type?: string | null;
+  status?: string | null;
+  location?: PostLocation | null;
   publishedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 const resolveFeedPage = (response: FeedApiResponse, fallbackPage: number) => {
@@ -87,7 +97,7 @@ const resolveFeedSize = (response: FeedApiResponse, fallbackSize: number) => {
 
 const resolveFeedHasMore = (response: FeedApiResponse) => {
   if (typeof response.hasMore === "boolean") return response.hasMore;
-  if (response.page && typeof response.page === "object") return response.page.hasNext ?? response.page.hasMore ?? false;
+  if (response.page && typeof response.page === "object") return response.page.hasNext ?? false;
   return false;
 };
 
@@ -102,10 +112,13 @@ const buildFeedResponse = (response: FeedApiResponse, page: number, size: number
         authorAvatar: item.author?.avatar,
         authorNickname: item.author?.nickname,
         authorId: item.author?.userId,
+        authorSocialCounters: item.author?.socialCounters,
+        authorRelationStatus: item.author?.relationStatus,
         likeCount: item.likeCount,
         favoriteCount: item.favoriteCount,
         liked: item.liked,
         faved: item.faved,
+        visible: item.visibility,
         distanceMeters: item.distanceMeters,
         hotScore: item.hotScore,
         isTop: item.isTop,
@@ -168,7 +181,8 @@ export const knowpostService = {
         tags: payload.tags,
         imageUrls: payload.imageUrls ?? payload.imgUrls,
         visibility: payload.visible,
-        isTop: payload.isTop
+        isTop: payload.isTop,
+        location: payload.location
       }
     }),
 
@@ -218,6 +232,13 @@ export const knowpostService = {
     return buildFeedResponse(response, page, size);
   },
 
+  userPosts: async (userId: string, page = 1, size = 20, accessToken?: string | null) => {
+    const response = await apiFetch<FeedApiResponse>(`/api/v1/profile/users/${userId}/posts?page=${page}&size=${size}`, {
+      accessToken: accessToken ?? null
+    });
+    return buildFeedResponse(response, page, size);
+  },
+
   detail: async (id: string, accessToken?: string) => {
     const response = await apiFetch<PostDetailApi>(`${POSTS_PREFIX}/${id}`, {
       accessToken: accessToken ?? null
@@ -232,6 +253,8 @@ export const knowpostService = {
       authorAvatar: response.author?.avatar,
       authorNickname: response.author?.nickname,
       authorId: response.author?.userId,
+      authorSocialCounters: response.author?.socialCounters,
+      authorRelationStatus: response.author?.relationStatus,
       likeCount: response.likeCount,
       favoriteCount: response.favoriteCount,
       liked: response.liked,
@@ -239,7 +262,11 @@ export const knowpostService = {
       isTop: response.isTop,
       visible: response.visibility,
       type: response.type,
-      publishedAt: response.publishedAt
+      status: response.status,
+      location: response.location,
+      publishedAt: response.publishedAt,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt
     });
   },
 
@@ -313,6 +340,42 @@ export const knowpostService = {
       liked: response.viewerLiked,
       faved: response.viewerFavorited
     } satisfies CounterResponse;
+  },
+
+  countersBatch: async (entityType: string, entityIds: string[], accessToken?: string | null) => {
+    if (!entityIds.length) {
+      return {} satisfies Record<string, CounterResponse>;
+    }
+
+    const usp = new URLSearchParams({
+      targetIds: entityIds.join(",")
+    });
+    const response = await apiFetch<Record<string, {
+      targetType?: string;
+      targetId?: string;
+      likeCount?: number;
+      favoriteCount?: number;
+      viewerLiked?: boolean;
+      viewerFavorited?: boolean;
+    }>>(`${INTERACTIONS_PREFIX}/${entityType}/summary-batch?${usp.toString()}`, {
+      accessToken: accessToken ?? null
+    });
+
+    return Object.fromEntries(
+      Object.entries(response ?? {}).map(([id, item]) => [
+        id,
+        {
+          entityType: item.targetType ?? entityType,
+          entityId: item.targetId ?? id,
+          counts: {
+            like: item.likeCount ?? 0,
+            fav: item.favoriteCount ?? 0
+          },
+          liked: item.viewerLiked,
+          faved: item.viewerFavorited
+        } satisfies CounterResponse
+      ])
+    );
   }
 };
 

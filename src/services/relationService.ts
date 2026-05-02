@@ -22,14 +22,13 @@ const mapFollowListResponse = (response: FollowListResponse, page: number, size:
   items: (response.items ?? []).map(mapProfileResponse),
   page: response.page?.page ?? page,
   size: response.page?.size ?? size,
-  hasMore: response.page?.hasMore ?? response.page?.hasNext ?? false
+  hasMore: response.page?.hasNext ?? false
 });
 
 export const relationService = {
   follow: async (toUserId: string, accessToken: string) => {
     const result = await apiFetch<{
       action?: string;
-      active?: boolean;
       following?: boolean;
       followeeId?: string;
       followerCount?: number;
@@ -40,7 +39,7 @@ export const relationService = {
     });
 
     return {
-      active: result.following ?? result.active ?? true,
+      following: result.following ?? true,
       action: result.action ?? "follow",
       targetUserId: result.followeeId,
       followerCount: result.followerCount,
@@ -51,7 +50,6 @@ export const relationService = {
   unfollow: async (toUserId: string, accessToken: string) => {
     const result = await apiFetch<{
       action?: string;
-      active?: boolean;
       following?: boolean;
       followeeId?: string;
       followerCount?: number;
@@ -62,7 +60,7 @@ export const relationService = {
     });
 
     return {
-      active: result.following ?? result.active ?? false,
+      following: result.following ?? false,
       action: result.action ?? "unfollow",
       targetUserId: result.followeeId,
       followerCount: result.followerCount,

@@ -32,6 +32,7 @@ export type ProfileResponse = {
   tagJson?: string;
   socialCounters?: SocialCounters;
   relationStatus?: RelationStatus;
+  followedAt?: string | null;
   self?: boolean;
 };
 
@@ -50,7 +51,6 @@ export type ProfileListResponse = {
   page?: {
     page: number;
     size: number;
-    hasMore?: boolean;
     hasNext?: boolean;
     total?: number;
   };

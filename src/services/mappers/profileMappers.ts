@@ -15,6 +15,7 @@ export type ProfileApiPayload = {
   tags?: string[];
   socialCounters?: ProfileResponse["socialCounters"];
   relationStatus?: ProfileResponse["relationStatus"];
+  followedAt?: string | null;
   self?: boolean;
 };
 
@@ -38,6 +39,7 @@ export const mapProfileResponse = (profile: ProfileApiPayload): ProfileResponse 
     tagJson: JSON.stringify(tags),
     socialCounters: profile.socialCounters,
     relationStatus: profile.relationStatus,
+    followedAt: profile.followedAt ?? null,
     self: profile.self ?? false
   };
 };

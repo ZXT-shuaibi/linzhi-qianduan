@@ -1,5 +1,5 @@
 import { apiFetch } from "./apiClient";
-import type { DiscoverItem, DiscoverQuery, DiscoverResponse } from "@/types/discover";
+import type { DiscoverItem, DiscoverQuery, DiscoverResponse, ReverseGeoResult } from "@/types/discover";
 
 type DiscoverItemApi = {
   id: string;
@@ -79,5 +79,13 @@ export const discoverService = {
       page: response.page ?? page,
       size: response.size ?? size
     } satisfies DiscoverResponse;
+  },
+
+  reverseGeocode: async (lat: number, lng: number) => {
+    const usp = new URLSearchParams({
+      lat: String(lat),
+      lng: String(lng)
+    });
+    return apiFetch<ReverseGeoResult | null>(`${DISCOVER_PREFIX}/map/reverse-geocode?${usp.toString()}`);
   }
 };

@@ -3,10 +3,39 @@ import { Link } from "react-router-dom";
 import TagInput from "@/components/common/TagInput";
 import CommunityTopNav from "@/components/layout/CommunityTopNav";
 import { useAuth } from "@/context/AuthContext";
+import { discoverService } from "@/services/discoverService";
 import { computeSha256, knowpostService, uploadToPresigned } from "@/services/knowpostService";
+import type { PostLocation } from "@/types/knowpost";
 import styles from "./CreatePage.module.css";
 
 const MAX_IMAGES = 15;
+
+const resolveBrowserPostLocation = () =>
+  new Promise<PostLocation | null>((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        } satisfies PostLocation;
+
+        try {
+          const reverseGeo = await discoverService.reverseGeocode(location.lat, location.lng);
+          const address = reverseGeo?.formattedAddress?.trim();
+          resolve(address ? { ...location, address } : location);
+        } catch {
+          resolve(location);
+        }
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }
+    );
+  });
 
 const CreatePage = () => {
   const { tokens } = useAuth();
@@ -91,11 +120,17 @@ const CreatePage = () => {
       return;
     }
 
+    const visible = visiblePublic ? "public" : "private";
     setSubmitting(true);
     setError(null);
     setMessage(null);
     setPublishedPostId(null);
     try {
+      const location = visible === "public" ? await resolveBrowserPostLocation() : null;
+      if (visible === "public" && (typeof location?.lat !== "number" || typeof location?.lng !== "number")) {
+        throw new Error("公开动态需要允许浏览器定位，才能进入附近发现；也可以切换为私密发布。");
+      }
+
       const id = await ensureDraft();
       const file = new File([content], "content.md", { type: "text/markdown" });
       const presign = await knowpostService.presign({
@@ -117,8 +152,9 @@ const CreatePage = () => {
         title: title.trim(),
         tags,
         imgUrls: uploadedImgUrls.length ? uploadedImgUrls : undefined,
-        visible: visiblePublic ? "public" : "private",
-        description: summary.trim() || undefined
+        visible,
+        description: summary.trim() || undefined,
+        location: location ?? undefined
       });
       await knowpostService.publish(id);
       setPublishedPostId(id);

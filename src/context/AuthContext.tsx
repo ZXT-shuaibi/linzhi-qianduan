@@ -112,7 +112,7 @@ const parseInstantToMillis = (value: string): number => {
 const toTokens = (token: LoginResponse["tokens"] | RefreshResponse): AuthTokens => ({
   accessToken: token.accessToken,
   refreshToken: token.refreshToken,
-  expiresAt: parseInstantToMillis(token.accessTokenExpiresAt ?? token.accessExpiresAt ?? "")
+  expiresAt: parseInstantToMillis(token.accessExpiresAt ?? "")
 });
 
 type AuthProviderProps = {
@@ -127,9 +127,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchUser = useCallback(async (accessToken: string) => {
     try {
-      const profile = await authService.fetchCurrentUser(accessToken);
-      setUser(profile);
-      persistUser(profile);
+      const authUser = await authService.fetchCurrentUser(accessToken);
+      let nextUser: AuthenticatedUser = authUser;
+      try {
+        nextUser = await authService.fetchCurrentProfile(accessToken);
+      } catch (profileError) {
+        console.warn("获取完整个人资料失败，已保留认证域用户信息", profileError);
+      }
+      setUser(nextUser);
+      persistUser(nextUser);
     } catch (error) {
       console.error("获取当前用户信息失败", error);
       setUser(null);
@@ -173,7 +179,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setTokens(nextTokens);
     persistTokens(nextTokens);
     await fetchUser(nextTokens.accessToken);
-    const currentUser = await authService.fetchCurrentUser(nextTokens.accessToken);
+    const currentUser = await authService
+      .fetchCurrentProfile(nextTokens.accessToken)
+      .catch(() => authService.fetchCurrentUser(nextTokens.accessToken));
     setUser(currentUser);
     persistUser(currentUser);
     return currentUser;

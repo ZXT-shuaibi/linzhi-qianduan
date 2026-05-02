@@ -1,3 +1,5 @@
+import type { RelationStatus, SocialCounters } from "@/types/profile";
+
 export type CreateDraftResponse = {
   id: string;
   status?: string;
@@ -29,6 +31,13 @@ export type ConfirmContentRequest = {
 
 export type VisibleScope = "public" | "followers" | "private";
 
+export type PostLocation = {
+  lat?: number | null;
+  lng?: number | null;
+  geoHash?: string | null;
+  address?: string | null;
+};
+
 export type UpdateKnowPostRequest = {
   title?: string;
   tags?: string[];
@@ -38,6 +47,7 @@ export type UpdateKnowPostRequest = {
   isTop?: boolean;
   description?: string;
   summary?: string;
+  location?: PostLocation;
 };
 
 export type FeedItem = {
@@ -51,6 +61,8 @@ export type FeedItem = {
   authorAvator?: string;
   authorNickname: string;
   authorId?: string;
+  authorSocialCounters?: SocialCounters;
+  authorRelationStatus?: RelationStatus;
   likeCount?: number;
   favoriteCount?: number;
   liked?: boolean;
@@ -81,6 +93,8 @@ export type KnowpostDetailResponse = {
   authorNickname: string;
   authorId?: string;
   authorTagJson?: string;
+  authorSocialCounters?: SocialCounters;
+  authorRelationStatus?: RelationStatus;
   likeCount: number;
   favoriteCount: number;
   liked?: boolean;
@@ -88,7 +102,11 @@ export type KnowpostDetailResponse = {
   isTop: boolean;
   visible: VisibleScope;
   type: string;
+  status?: string;
+  location?: PostLocation | null;
   publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type LikeActionResponse = {

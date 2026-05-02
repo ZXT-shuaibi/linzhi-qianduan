@@ -6,6 +6,7 @@ import SearchPage from "./pages/SearchPage";
 import CreatePage from "./pages/CreatePage";
 import LearningPage from "./pages/LearningPage";
 import ProfilePage from "./pages/ProfilePage";
+import UserProfilePage from "./pages/UserProfilePage";
 import EditProfilePage from "./pages/EditProfilePage";
 import CourseDetailPage from "./pages/CourseDetailPage";
 import LoginPage from "./pages/LoginPage";
@@ -22,6 +23,7 @@ function App() {
       <Route path="/learn" element={<LearningPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/profile/edit" element={<EditProfilePage />} />
+      <Route path="/user/:id" element={<UserProfilePage />} />
       <Route path="/post/:id" element={<CourseDetailPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />

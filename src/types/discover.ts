@@ -17,6 +17,8 @@ export type DiscoverItem = {
   publishTime?: string | null;
   likeCount: number;
   favoriteCount: number;
+  liked?: boolean;
+  faved?: boolean;
   score?: number | null;
 };
 
@@ -35,4 +37,16 @@ export type DiscoverQuery = {
   size?: number;
   entityType?: DiscoverEntityType;
   tag?: string;
+};
+
+export type ReverseGeoResult = {
+  lat?: number | null;
+  lng?: number | null;
+  formattedAddress?: string | null;
+  province?: string | null;
+  city?: string | null;
+  district?: string | null;
+  township?: string | null;
+  street?: string | null;
+  adCode?: string | null;
 };

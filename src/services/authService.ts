@@ -2,6 +2,8 @@ import { apiFetch } from "./apiClient";
 import { mapAuthenticatedUser, mapProfileResponse, type ProfileApiPayload } from "@/services/mappers/profileMappers";
 import type {
   ActionResult,
+  AuthenticatedUser,
+  AuthUserResponse,
   LoginRequest,
   LoginResponse,
   LogoutRequest,
@@ -49,6 +51,19 @@ export const authService = {
     }),
 
   fetchCurrentUser: async (accessToken: string) => {
+    const response = await apiFetch<AuthUserResponse>(`${AUTH_PREFIX}/me`, {
+      accessToken
+    });
+    return {
+      id: response.userId,
+      userId: response.userId,
+      phone: response.phone ?? null,
+      account: response.account ?? null,
+      nickname: response.nickname
+    } satisfies AuthenticatedUser;
+  },
+
+  fetchCurrentProfile: async (accessToken: string) => {
     const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`, {
       accessToken
     });

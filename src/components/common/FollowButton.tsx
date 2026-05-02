@@ -1,20 +1,30 @@
 import { useEffect, useState } from "react";
 import { relationService } from "@/services/relationService";
 import { useAuth } from "@/context/AuthContext";
+import type { RelationStatus } from "@/types/profile";
+import type { FollowActionResponse } from "@/types/relation";
 import styles from "./FollowButton.module.css";
 
 type FollowButtonProps = {
   targetUserId?: string;
   compact?: boolean;
+  initialStatus?: RelationStatus;
+  onChanged?: (result: FollowActionResponse) => void;
 };
 
-const FollowButton = ({ targetUserId, compact }: FollowButtonProps) => {
+const FollowButton = ({ targetUserId, compact, initialStatus, onChanged }: FollowButtonProps) => {
   const { tokens } = useAuth();
   const [loading, setLoading] = useState(false);
   const [following, setFollowing] = useState(false);
   const [mutual, setMutual] = useState(false);
 
   useEffect(() => {
+    if (initialStatus) {
+      setFollowing(initialStatus.following);
+      setMutual(initialStatus.mutual);
+      return;
+    }
+
     const run = async () => {
       if (!targetUserId || !tokens?.accessToken) return;
       try {
@@ -26,7 +36,7 @@ const FollowButton = ({ targetUserId, compact }: FollowButtonProps) => {
       }
     };
     void run();
-  }, [targetUserId, tokens?.accessToken]);
+  }, [initialStatus, targetUserId, tokens?.accessToken]);
 
   if (!targetUserId || !tokens?.accessToken) {
     return null;
@@ -36,12 +46,14 @@ const FollowButton = ({ targetUserId, compact }: FollowButtonProps) => {
     setLoading(true);
     try {
       if (following) {
-        await relationService.unfollow(targetUserId, tokens.accessToken);
-        setFollowing(false);
+        const response = await relationService.unfollow(targetUserId, tokens.accessToken);
+        setFollowing(response.following);
         setMutual(false);
+        onChanged?.(response);
       } else {
-        await relationService.follow(targetUserId, tokens.accessToken);
-        setFollowing(true);
+        const response = await relationService.follow(targetUserId, tokens.accessToken);
+        setFollowing(response.following);
+        onChanged?.(response);
         try {
           const status = await relationService.status(targetUserId, tokens.accessToken);
           setMutual(status.mutual);

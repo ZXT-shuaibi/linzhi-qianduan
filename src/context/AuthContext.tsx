@@ -157,7 +157,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const register = useCallback(async (payload: RegisterRequest) => {
     await authService.register(payload);
     const loginResponse = await authService.login({
-      identifier: payload.account,
+      identifier: payload.phone,
       password: payload.password,
       channel: "H5"
     });

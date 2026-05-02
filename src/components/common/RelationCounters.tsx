@@ -22,9 +22,9 @@ const RelationCounters = ({ userId }: RelationCountersProps) => {
 
   useEffect(() => {
     const run = async () => {
-      if (!userId || !tokens?.accessToken) return;
+      if (!userId) return;
       try {
-        const next = await relationService.counters(userId, tokens.accessToken);
+        const next = await relationService.counters(userId, tokens?.accessToken);
         setCounts(next);
       } catch {
         // 计数拉取失败时不打断页面展示。

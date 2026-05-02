@@ -41,11 +41,14 @@ type FeedItemApi = {
 
 type FeedApiResponse = {
   items?: FeedItemApi[];
-  page?: {
-    page: number;
-    size: number;
-    hasMore: boolean;
+  page?: number | {
+    page?: number;
+    size?: number;
+    hasMore?: boolean;
+    hasNext?: boolean;
   };
+  size?: number;
+  hasMore?: boolean;
   cacheLayer?: string;
 };
 
@@ -71,8 +74,24 @@ type PostDetailApi = {
   publishedAt?: string | null;
 };
 
-const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) =>
-  ({
+const resolveFeedPage = (response: FeedApiResponse, fallbackPage: number) => {
+  if (typeof response.page === "number") return response.page;
+  if (response.page && typeof response.page === "object") return response.page.page ?? fallbackPage;
+  return fallbackPage;
+};
+
+const resolveFeedSize = (response: FeedApiResponse, fallbackSize: number) => {
+  if (response.page && typeof response.page === "object") return response.page.size ?? response.size ?? fallbackSize;
+  return response.size ?? fallbackSize;
+};
+
+const resolveFeedHasMore = (response: FeedApiResponse) => {
+  if (typeof response.hasMore === "boolean") return response.hasMore;
+  if (response.page && typeof response.page === "object") return response.page.hasMore ?? response.page.hasNext ?? false;
+  return false;
+};
+
+const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) => ({
     items: (response.items ?? []).map((item) =>
       mapFeedPreview({
         id: item.postId,
@@ -93,9 +112,9 @@ const buildFeedResponse = (response: FeedApiResponse, page: number, size: number
         publishedAt: item.publishedAt
       })
     ),
-    page: response.page?.page ?? page,
-    size: response.page?.size ?? size,
-    hasMore: response.page?.hasMore ?? false,
+    page: resolveFeedPage(response, page),
+    size: resolveFeedSize(response, size),
+    hasMore: resolveFeedHasMore(response),
     cacheLayer: response.cacheLayer
   }) satisfies FeedResponse;
 

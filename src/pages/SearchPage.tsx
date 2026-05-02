@@ -126,6 +126,7 @@ const SearchPage = () => {
   const [size] = useState<number>(20);
   const [items, setItems] = useState<FeedItem[]>([]);
   const [after, setAfter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -148,10 +149,12 @@ const SearchPage = () => {
     try {
       const response = await searchService.query({ q: text, size, tags: tags.trim() || undefined });
       setItems(response.items ?? []);
+      setPage(response.page);
       setAfter(response.nextAfter ?? null);
       setHasMore(Boolean(response.hasMore));
     } catch {
       setItems([]);
+      setPage(1);
       setAfter(null);
       setHasMore(false);
     } finally {
@@ -188,8 +191,9 @@ const SearchPage = () => {
     if (!q.trim() || !after) return;
     setLoading(true);
     try {
-      const response = await searchService.query({ q: q.trim(), size, tags: tags.trim() || undefined, after });
+      const response = await searchService.query({ q: q.trim(), page: page + 1, size, tags: tags.trim() || undefined, after });
       setItems((current) => [...current, ...(response.items ?? [])]);
+      setPage(response.page);
       setAfter(response.nextAfter ?? null);
       setHasMore(Boolean(response.hasMore));
     } catch {

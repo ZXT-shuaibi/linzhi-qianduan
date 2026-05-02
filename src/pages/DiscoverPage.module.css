@@ -500,6 +500,25 @@
   box-shadow: none;
 }
 
+.loadMoreButton {
+  align-self: center;
+  min-height: 46px;
+  margin: 8px auto 0;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--linzhi-primary);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(230, 126, 34, 0.16);
+}
+
+.loadMoreButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 @media (max-width: 1280px) {
   .hero,
   .contentGrid {

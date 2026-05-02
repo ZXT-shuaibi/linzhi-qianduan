@@ -11,6 +11,7 @@ import type { CounterResponse } from "@/types/knowpost";
 import styles from "./DiscoverPage.module.css";
 
 const DEFAULT_LOCATION = { lat: 31.2304, lng: 121.4737 };
+const DISCOVER_PAGE_SIZE = 30;
 
 const entityFilters: Array<{ value: DiscoverEntityType; label: string; hint: string }> = [
   { value: "mixed", label: "全部", hint: "帖子与商家" },
@@ -45,8 +46,11 @@ const DiscoverPage = () => {
   const [locationLabel, setLocationLabel] = useState("上海社区");
   const [locationText, setLocationText] = useState("使用上海默认坐标，展示 3km 内的真实发现数据");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const loadNearby = useCallback(async (coords = location) => {
+  const loadNearby = useCallback(async (coords = location, nextPage = 1, append = false) => {
     setLoading(true);
     setError(null);
     try {
@@ -55,7 +59,8 @@ const DiscoverPage = () => {
         lng: coords.lng,
         radius,
         entityType,
-        size: 30,
+        page: nextPage,
+        size: DISCOVER_PAGE_SIZE,
         tag: activeTag ?? undefined
       });
       let nextItems = response.items ?? [];
@@ -83,24 +88,44 @@ const DiscoverPage = () => {
             : item;
         });
       }
-      setItems(nextItems);
+      setItems((current) => {
+        if (!append) return nextItems;
+        const seen = new Set(current.map((item) => `${item.entityType}:${item.id}`));
+        return [
+          ...current,
+          ...nextItems.filter((item) => !seen.has(`${item.entityType}:${item.id}`))
+        ];
+      });
+      setPage(response.page);
+      setTotal(response.total);
+      setHasMore(response.hasMore);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载附近内容失败");
-      setItems([]);
+      if (!append) {
+        setItems([]);
+        setPage(1);
+        setTotal(0);
+        setHasMore(false);
+      }
     } finally {
       setLoading(false);
     }
   }, [activeTag, entityType, location, radius, tokens?.accessToken]);
 
   useEffect(() => {
-    void loadNearby(location);
+    void loadNearby(location, 1, false);
   }, [loadNearby, location]);
+
+  const loadMore = () => {
+    if (loading || !hasMore) return;
+    void loadNearby(location, page + 1, true);
+  };
 
   const locateMe = () => {
     if (!navigator.geolocation) {
       setLocationLabel("上海社区");
       setLocationText("当前浏览器不支持定位，已继续使用上海默认坐标");
-      void loadNearby(DEFAULT_LOCATION);
+      void loadNearby(DEFAULT_LOCATION, 1, false);
       return;
     }
 
@@ -164,7 +189,7 @@ const DiscoverPage = () => {
         <div className={styles.mapCard}>
           <div className={styles.mapHeader}>
             <span>附近索引</span>
-            <strong>{items.length} 条结果</strong>
+            <strong>{items.length}/{total || items.length} 条结果</strong>
           </div>
           <div className={styles.mapRadar}>
             {items.slice(0, 8).map((item, index) => (
@@ -277,6 +302,11 @@ const DiscoverPage = () => {
 
           {!loading && !postItems.length ? (
             <div className={styles.empty}>当前筛选范围内暂无附近帖子，可以扩大半径或发布第一条动态。</div>
+          ) : null}
+          {hasMore ? (
+            <button type="button" className={styles.loadMoreButton} onClick={loadMore} disabled={loading}>
+              {loading ? "加载中..." : "加载更多"}
+            </button>
           ) : null}
         </div>
 

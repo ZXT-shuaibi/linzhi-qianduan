@@ -27,6 +27,7 @@ export type DiscoverResponse = {
   total: number;
   page: number;
   size: number;
+  hasMore: boolean;
 };
 
 export type DiscoverQuery = {

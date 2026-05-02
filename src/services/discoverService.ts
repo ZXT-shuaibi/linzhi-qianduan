@@ -73,11 +73,15 @@ export const discoverService = {
       usp.set("tag", tag);
     }
     const response = await apiFetch<DiscoverApiResponse>(`${DISCOVER_PREFIX}/nearby?${usp.toString()}`);
+    const total = response.total ?? 0;
+    const currentPage = response.page ?? page;
+    const pageSize = response.size ?? size;
     return {
       items: (response.items ?? []).map(mapDiscoverItem),
-      total: response.total ?? 0,
-      page: response.page ?? page,
-      size: response.size ?? size
+      total,
+      page: currentPage,
+      size: pageSize,
+      hasMore: currentPage * pageSize < total
     } satisfies DiscoverResponse;
   },
 

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthExperience from "@/features/auth/AuthExperience";
 import { useAuth } from "@/context/AuthContext";
+import { ApiError } from "@/services/apiClient";
 import { authService } from "@/services/authService";
 import type { LoginRequest } from "@/types/auth";
 import styles from "./AuthForm.module.css";
@@ -24,6 +25,8 @@ const LoginPage = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [smsCode, setSmsCode] = useState("");
+  const [captchaCode, setCaptchaCode] = useState("");
+  const [requireCaptcha, setRequireCaptcha] = useState(false);
   const [resetPhone, setResetPhone] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
@@ -83,7 +86,7 @@ const LoginPage = () => {
         scene: "login"
       });
       setSmsCode(result.code ?? "");
-      setMessage(`验证码已发送，开发环境验证码为：${result.code}`);
+      setMessage(result.code ? `验证码已发送，开发环境验证码为：${result.code}` : "验证码已发送");
       setCountdown(Math.max(1, result.expireSeconds ?? 60));
     } catch (err) {
       setError(err instanceof Error ? err.message : "验证码发送失败");
@@ -129,20 +132,31 @@ const LoginPage = () => {
 
     setSubmitting(true);
     try {
+      const captchaCodeTrimmed = captchaCode.trim();
       const payload: LoginRequest = mode === "password"
         ? {
             identifier: trimmedIdentifier,
             password,
-            channel: "H5"
+            channel: "H5",
+            ...(requireCaptcha ? { captchaCode: captchaCodeTrimmed } : {})
           }
         : {
             identifier: trimmedIdentifier,
             channel: "H5",
-            smsCode: smsCode.trim()
+            captchaCode: smsCode.trim()
           };
       await login(payload);
+      setRequireCaptcha(false);
       navigate(from, { replace: true });
     } catch (err) {
+      if (err instanceof ApiError && err.data != null) {
+        const body = err.data as Record<string, unknown>;
+        if (body.code === "CAPTCHA_REQUIRED") {
+          setRequireCaptcha(true);
+          setError("安全验证：请先获取并输入短信验证码");
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : "登录失败，请稍后重试");
     } finally {
       setSubmitting(false);
@@ -320,16 +334,39 @@ const LoginPage = () => {
                     </div>
 
                     {mode === "password" ? (
-                      <div className={styles.field}>
-                        <input
-                          className={styles.input}
-                          type="password"
-                          value={password}
-                          onChange={(event) => setPassword(event.target.value)}
-                          placeholder="密码"
-                          autoComplete="current-password"
-                        />
-                      </div>
+                      <>
+                        <div className={styles.field}>
+                          <input
+                            className={styles.input}
+                            type="password"
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            placeholder="密码"
+                            autoComplete="current-password"
+                          />
+                        </div>
+                        {requireCaptcha && (
+                          <div className={styles.fieldGroup}>
+                            <div className={styles.codeRow}>
+                              <input
+                                className={styles.input}
+                                value={captchaCode}
+                                onChange={(event) => setCaptchaCode(event.target.value)}
+                                placeholder="验证码"
+                                autoComplete="one-time-code"
+                              />
+                              <button
+                                type="button"
+                                className={styles.codeButton}
+                                disabled={sendingCode || countdown > 0}
+                                onClick={() => void handleSendCode()}
+                              >
+                                {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className={styles.fieldGroup}>
                         <div className={styles.codeRow}>

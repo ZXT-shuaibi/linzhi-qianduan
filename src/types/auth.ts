@@ -25,7 +25,7 @@ export type RegisterRequest = {
 export type RegisterResponse = {
   userId: string;
   phone: string;
-  account: string;
+  account?: string;
   nextAction: string;
   status: string;
 };
@@ -33,7 +33,6 @@ export type RegisterResponse = {
 export type LoginRequest = {
   identifier: string;
   password?: string;
-  smsCode?: string;
   channel?: string;
   captchaCode?: string;
 };

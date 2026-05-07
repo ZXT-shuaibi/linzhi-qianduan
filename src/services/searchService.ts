@@ -48,7 +48,9 @@ export const searchService = {
       usp.set("searchAfter", after);
     }
 
-    const response = await apiFetch<SearchApiResponse>(`${SEARCH_PREFIX}/posts?${usp.toString()}`);
+    const response = await apiFetch<SearchApiResponse>(`${SEARCH_PREFIX}/posts?${usp.toString()}`, {
+      authMode: "optional"
+    });
     return {
       items: (response.items ?? []).map((item) =>
         mapFeedPreview({
@@ -81,7 +83,9 @@ export const searchService = {
     usp.set("q", q);
     usp.set("size", String(size));
 
-    const response = await apiFetch<{ items?: Array<{ text?: string | null }> }>(`${SEARCH_PREFIX}/suggest?${usp.toString()}`);
+    const response = await apiFetch<{ items?: Array<{ text?: string | null }> }>(`${SEARCH_PREFIX}/suggest?${usp.toString()}`, {
+      authMode: "none"
+    });
     return {
       items: (response.items ?? [])
         .map((item) => item.text?.trim() ?? "")

@@ -72,7 +72,9 @@ export const discoverService = {
     if (tag) {
       usp.set("tag", tag);
     }
-    const response = await apiFetch<DiscoverApiResponse>(`${DISCOVER_PREFIX}/nearby?${usp.toString()}`);
+    const response = await apiFetch<DiscoverApiResponse>(`${DISCOVER_PREFIX}/nearby?${usp.toString()}`, {
+      authMode: "none"
+    });
     const total = response.total ?? 0;
     const currentPage = response.page ?? page;
     const pageSize = response.size ?? size;
@@ -90,6 +92,8 @@ export const discoverService = {
       lat: String(lat),
       lng: String(lng)
     });
-    return apiFetch<ReverseGeoResult | null>(`${DISCOVER_PREFIX}/map/reverse-geocode?${usp.toString()}`);
+    return apiFetch<ReverseGeoResult | null>(`${DISCOVER_PREFIX}/map/reverse-geocode?${usp.toString()}`, {
+      authMode: "none"
+    });
   }
 };

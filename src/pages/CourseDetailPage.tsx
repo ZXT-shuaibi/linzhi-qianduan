@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -17,7 +18,7 @@ import CommunityTopNav from "@/components/layout/CommunityTopNav";
 import { useAuth } from "@/context/AuthContext";
 import { knowpostService } from "@/services/knowpostService";
 import { streamRagAnswer } from "@/services/ragService";
-import type { KnowpostDetailResponse } from "@/types/knowpost";
+import type { KnowpostDetailResponse, PostComment } from "@/types/knowpost";
 import styles from "./CourseDetailPage.module.css";
 
 const MarkdownLink = ({ node: _node, ...props }: ComponentPropsWithoutRef<"a"> & { node?: unknown }) => (
@@ -28,7 +29,15 @@ const MarkdownImage = ({ node: _node, ...props }: ComponentPropsWithoutRef<"img"
   <img {...props} />
 );
 
+const COMMENT_PAGE_SIZE = 10;
+
 const getInitial = (name?: string | null) => name?.trim().charAt(0) || "邻";
+
+const formatCommentTime = (value?: string | null) => {
+  if (!value) return "刚刚";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "刚刚" : date.toLocaleString("zh-CN");
+};
 
 const CourseDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +60,13 @@ const CourseDetailPage = () => {
   const [ragLoading, setRagLoading] = useState(false);
   const [ragError, setRagError] = useState<string | null>(null);
   const [ragTopK] = useState(5);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentPage, setCommentPage] = useState(1);
+  const [commentHasMore, setCommentHasMore] = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,6 +132,30 @@ const CourseDetailPage = () => {
       abortRef.current = null;
     };
   }, []);
+
+  const loadComments = useCallback(async (nextPage = 1, append = false) => {
+    if (!id) return;
+    setCommentLoading(true);
+    setCommentError(null);
+    try {
+      const response = await knowpostService.listComments(id, nextPage, COMMENT_PAGE_SIZE, tokens?.accessToken);
+      setComments((current) => append ? [...current, ...(response.items ?? [])] : response.items ?? []);
+      setCommentPage(response.page ?? nextPage);
+      setCommentHasMore(Boolean(response.hasMore));
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "评论加载失败");
+      if (!append) {
+        setComments([]);
+        setCommentHasMore(false);
+      }
+    } finally {
+      setCommentLoading(false);
+    }
+  }, [id, tokens?.accessToken]);
+
+  useEffect(() => {
+    void loadComments(1, false);
+  }, [loadComments]);
 
   const images = detail?.images ?? [];
   const activeImage = images[previewIndex] ?? images[0] ?? null;
@@ -201,6 +241,26 @@ const CourseDetailPage = () => {
     abortRef.current?.abort();
     abortRef.current = null;
     setRagLoading(false);
+  };
+
+  const submitComment = async () => {
+    if (!id || !commentDraft.trim()) return;
+    if (!tokens?.accessToken) {
+      setCommentError("请先登录后再发表评论");
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setCommentError(null);
+    try {
+      const created = await knowpostService.createComment(id, commentDraft);
+      setComments((current) => [created, ...current]);
+      setCommentDraft("");
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "评论发布失败");
+    } finally {
+      setCommentSubmitting(false);
+    }
   };
 
   return (
@@ -351,10 +411,78 @@ const CourseDetailPage = () => {
                 </div>
               </section>
 
-              <section className={styles.commentEmpty}>
-                <span>评论区</span>
-                <strong>linli 暂未暴露评论列表/发布接口</strong>
-                <p>这里先保留真实空态，等后端评论接口就绪后再接入，不展示伪评论。</p>
+              <section className={styles.commentPanel}>
+                <div className={styles.sectionTitle}>
+                  <span>Comments</span>
+                  <strong>评论区</strong>
+                </div>
+
+                {tokens?.accessToken ? (
+                  <div className={styles.commentComposer}>
+                    <textarea
+                      className={styles.commentTextarea}
+                      value={commentDraft}
+                      maxLength={1000}
+                      placeholder="写下你的想法，给邻里一点真实回声。"
+                      onChange={(event) => setCommentDraft(event.target.value)}
+                    />
+                    <div className={styles.commentComposerFooter}>
+                      <span>{commentDraft.trim().length}/1000</span>
+                      <button
+                        type="button"
+                        className={styles.commentSubmit}
+                        disabled={commentSubmitting || !commentDraft.trim()}
+                        onClick={() => void submitComment()}
+                      >
+                        {commentSubmitting ? "发布中..." : "发表评论"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className={styles.commentLoginHint}>登录后可以参与评论，当前可先浏览公开评论。</p>
+                )}
+
+                {commentError ? <div className={styles.error}>{commentError}</div> : null}
+
+                {comments.length ? (
+                  <div className={styles.commentList}>
+                    {comments.map((comment) => (
+                      <article key={comment.commentId} className={styles.commentItem}>
+                        {comment.author?.avatar ? (
+                          <img
+                            className={styles.commentAvatar}
+                            src={comment.author.avatar}
+                            alt={comment.author.nickname ?? "评论用户"}
+                          />
+                        ) : (
+                          <span className={styles.commentAvatar}>{getInitial(comment.author?.nickname)}</span>
+                        )}
+                        <div className={styles.commentBody}>
+                          <div className={styles.commentMeta}>
+                            <strong>{comment.author?.nickname || "邻里用户"}</strong>
+                            <time>{formatCommentTime(comment.createdAt)}</time>
+                          </div>
+                          <p className={styles.commentContent}>{comment.content}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.commentBlank}>
+                    {commentLoading ? "评论加载中..." : "还没有评论，来做第一个认真回应的人。"}
+                  </div>
+                )}
+
+                {commentHasMore ? (
+                  <button
+                    type="button"
+                    className={styles.commentMore}
+                    disabled={commentLoading}
+                    onClick={() => void loadComments(commentPage + 1, true)}
+                  >
+                    {commentLoading ? "加载中..." : "加载更多评论"}
+                  </button>
+                ) : null}
               </section>
             </>
           ) : null}

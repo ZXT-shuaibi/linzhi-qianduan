@@ -395,3 +395,63 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.guardPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(79,70,229,0.16), transparent 32%),
+    linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.guardCard {
+  width: min(520px, 100%);
+  padding: 32px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 24px 70px rgba(30,41,59,0.16);
+  border: 1px solid rgba(99,102,241,0.16);
+}
+
+.guardEyebrow {
+  margin: 0 0 10px;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.guardTitle {
+  margin: 0;
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.guardText {
+  margin: 12px 0 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.guardActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.guardLink {
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.guardLink:hover {
+  text-decoration: underline;
+}

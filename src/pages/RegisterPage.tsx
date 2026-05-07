@@ -45,7 +45,7 @@ const RegisterPage = () => {
       const result = await authService.sendCode({ scene: "register", identifier: phone.trim() });
       setSmsCode(result.code ?? "");
       setMessage(result.code ? `验证码已发送，开发环境验证码为：${result.code}` : "验证码已发送");
-      setCountdown(Math.max(1, result.expireSeconds ?? 60));
+      setCountdown(Math.max(1, result.resendAfterSeconds ?? 60));
     } catch (err) {
       setError(err instanceof Error ? err.message : "验证码发送失败");
     } finally {

@@ -27,13 +27,15 @@ export const profileService = {
   update: async (payload: ProfileUpdateRequest) => {
     const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`, {
       method: "PATCH",
+      authMode: "required",
       body: {
         nickname: payload.nickname,
         bio: payload.bio,
         gender: payload.gender,
         birthday: payload.birthday || undefined,
         school: payload.school,
-        tags: parseTags(payload)
+        tags: parseTags(payload),
+        clearFields: payload.clearFields?.length ? payload.clearFields : undefined
       }
     });
     return mapProfileResponse(response);
@@ -52,6 +54,7 @@ export const profileService = {
       headers?: Record<string, string>;
     }>(`${STORAGE_PREFIX}/presign`, {
       method: "POST",
+      authMode: "required",
       body: {
         scene: "profile_avatar",
         filename,
@@ -64,6 +67,7 @@ export const profileService = {
 
     const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/avatar`, {
       method: "POST",
+      authMode: "required",
       body: {
         objectKey: presign.objectKey,
         avatarUrl: presign.publicUrl
@@ -73,13 +77,16 @@ export const profileService = {
   },
 
   me: async () => {
-    const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`);
+    const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`, {
+      authMode: "required"
+    });
     return mapProfileResponse(response);
   },
 
   user: async (userId: string, accessToken?: string | null) => {
     const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/users/${userId}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
     return mapProfileResponse(response);
   }

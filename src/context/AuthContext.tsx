@@ -38,6 +38,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "linzhi_auth_tokens";
 const USER_STORAGE_KEY = "linzhi_current_user";
+const TOKEN_CHANGED_EVENT = "linzhi_auth_tokens_changed";
 
 const readStoredTokens = (): AuthTokens | null => {
   if (typeof window === "undefined") {
@@ -139,9 +140,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchUser = useCallback(async (accessToken: string) => {
     try {
       const authUser = await authService.fetchCurrentUser(accessToken);
-      let nextUser: AuthenticatedUser = { ...authUser, role: parseJwtRole(accessToken) };
+      const latestRole = authUser.role ?? parseJwtRole(accessToken);
+      let nextUser: AuthenticatedUser = { ...authUser, role: latestRole };
       try {
-        nextUser = { ...await authService.fetchCurrentProfile(accessToken), role: parseJwtRole(accessToken) };
+        nextUser = { ...await authService.fetchCurrentProfile(accessToken), role: latestRole };
       } catch (profileError) {
         console.warn("获取完整个人资料失败，已保留认证域用户信息", profileError);
       }
@@ -190,12 +192,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setTokens(nextTokens);
     persistTokens(nextTokens);
     await fetchUser(nextTokens.accessToken);
+    const role = parseJwtRole(nextTokens.accessToken);
     const currentUser = await authService
       .fetchCurrentProfile(nextTokens.accessToken)
       .catch(() => authService.fetchCurrentUser(nextTokens.accessToken));
-    setUser(currentUser);
-    persistUser(currentUser);
-    return currentUser;
+    const currentUserWithRole = { ...currentUser, role: currentUser.role ?? role };
+    setUser(currentUserWithRole);
+    persistUser(currentUserWithRole);
+    return currentUserWithRole;
   }, [fetchUser]);
 
   const logout = useCallback(async () => {
@@ -248,6 +252,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }, 60_000);
     return () => window.clearInterval(timer);
   }, [tokens, refresh]);
+
+  useEffect(() => {
+    const syncTokensFromStorage = () => {
+      const nextTokens = readStoredTokens();
+      setTokens(nextTokens);
+      if (!nextTokens) {
+        setUser(null);
+        persistUser(null);
+      }
+    };
+    window.addEventListener(TOKEN_CHANGED_EVENT, syncTokensFromStorage);
+    return () => window.removeEventListener(TOKEN_CHANGED_EVENT, syncTokensFromStorage);
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
     user,

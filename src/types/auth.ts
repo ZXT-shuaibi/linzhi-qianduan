@@ -10,8 +10,9 @@ export type SendCodeRequest = {
 export type SendCodeResponse = {
   phone?: string;
   scene: VerificationScene;
-  code: string;
+  code?: string | null;
   expireSeconds: number;
+  resendAfterSeconds?: number;
 };
 
 export type RegisterRequest = {
@@ -57,6 +58,7 @@ export type AuthUserResponse = {
   phone?: string | null;
   account?: string | null;
   nickname: string;
+  role?: string | null;
 };
 
 export type PasswordResetRequest = {

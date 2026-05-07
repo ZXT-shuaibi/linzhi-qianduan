@@ -35,7 +35,8 @@ export const relationService = {
       followCount?: number;
     }>(`${FOLLOWS_PREFIX}/${toUserId}`, {
       method: "POST",
-      accessToken
+      accessToken,
+      authMode: "required"
     });
 
     return {
@@ -56,7 +57,8 @@ export const relationService = {
       followCount?: number;
     }>(`${FOLLOWS_PREFIX}/${toUserId}`, {
       method: "DELETE",
-      accessToken
+      accessToken,
+      authMode: "required"
     });
 
     return {
@@ -70,25 +72,29 @@ export const relationService = {
 
   status: (toUserId: string, accessToken: string) =>
     apiFetch<RelationStatusResponse>(`${FOLLOWS_PREFIX}/status?targetUserId=${toUserId}`, {
-      accessToken
+      accessToken,
+      authMode: "optional"
     }),
 
   following: async (userId: string, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
     const response = await apiFetch<FollowListResponse>(`${PROFILE_PREFIX}/users/${userId}/following?page=${page}&size=${size}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
     return mapFollowListResponse(response, page, size);
   },
 
   followers: async (userId: string, size = 20, page = 1, _cursor?: number, accessToken?: string) => {
     const response = await apiFetch<FollowListResponse>(`${PROFILE_PREFIX}/users/${userId}/followers?page=${page}&size=${size}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
     return mapFollowListResponse(response, page, size);
   },
 
   counters: (userId: string, accessToken?: string) =>
     apiFetch<RelationCountersResponse>(`${SOCIAL_PREFIX}/counters/users/${userId}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     })
 };

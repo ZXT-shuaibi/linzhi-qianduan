@@ -1,4 +1,5 @@
 export type Gender = "male" | "female" | "other" | "unknown";
+export type ProfileClearField = "bio" | "birthday" | "school";
 
 export type SocialCounters = {
   userId?: string;
@@ -44,6 +45,7 @@ export type ProfileUpdateRequest = {
   school?: string;
   tags?: string[];
   tagJson?: string;
+  clearFields?: ProfileClearField[];
 };
 
 export type ProfileListResponse = {

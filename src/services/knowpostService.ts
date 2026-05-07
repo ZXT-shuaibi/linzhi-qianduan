@@ -7,6 +7,8 @@ import type {
   FavActionResponse,
   FeedResponse,
   LikeActionResponse,
+  PostComment,
+  PostCommentPage,
   PostLocation,
   PresignRequest,
   PresignResponse,
@@ -134,7 +136,8 @@ const buildFeedResponse = (response: FeedApiResponse, page: number, size: number
 export const knowpostService = {
   createDraft: async () => {
     const response = await apiFetch<{ postId: string; status?: string; createdAt?: string }>(`${POSTS_PREFIX}/drafts`, {
-      method: "POST"
+      method: "POST",
+      authMode: "required"
     });
     return {
       id: response.postId,
@@ -152,6 +155,7 @@ export const knowpostService = {
       expireAt?: string;
     }>(`${STORAGE_PREFIX}/presign`, {
       method: "POST",
+      authMode: "required",
       body: {
         scene: payload.scene,
         postId: payload.postId,
@@ -170,11 +174,12 @@ export const knowpostService = {
   },
 
   confirmContent: (id: string, payload: ConfirmContentRequest) =>
-    apiFetch<void>(`${POSTS_PREFIX}/${id}/content/confirm`, { method: "POST", body: payload }),
+    apiFetch<void>(`${POSTS_PREFIX}/${id}/content/confirm`, { method: "POST", body: payload, authMode: "required" }),
 
   update: (id: string, payload: UpdateKnowPostRequest) =>
     apiFetch<void>(`${POSTS_PREFIX}/${id}`, {
       method: "PATCH",
+      authMode: "required",
       body: {
         title: payload.title,
         summary: payload.summary ?? payload.description,
@@ -187,7 +192,7 @@ export const knowpostService = {
     }),
 
   publish: (id: string) =>
-    apiFetch<void>(`${POSTS_PREFIX}/${id}/publish`, { method: "POST" }),
+    apiFetch<void>(`${POSTS_PREFIX}/${id}/publish`, { method: "POST", authMode: "required" }),
 
   setTop: (id: string, isTop: boolean, accessToken: string) =>
     apiFetch<void>(`${POSTS_PREFIX}/${id}/top?isTop=${isTop}`, {
@@ -208,7 +213,9 @@ export const knowpostService = {
     }),
 
   feed: async (page = 1, size = 20) => {
-    const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`);
+    const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`, {
+      authMode: "optional"
+    });
     return buildFeedResponse(response, page, size);
   },
 
@@ -221,7 +228,9 @@ export const knowpostService = {
     if (typeof params?.lng === "number") usp.set("lng", String(params.lng));
     if (params?.geoHash) usp.set("geoHash", params.geoHash);
 
-    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`);
+    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`, {
+      authMode: "optional"
+    });
     return buildFeedResponse(response, page, size);
   },
 
@@ -234,14 +243,16 @@ export const knowpostService = {
 
   userPosts: async (userId: string, page = 1, size = 20, accessToken?: string | null) => {
     const response = await apiFetch<FeedApiResponse>(`/api/v1/profile/users/${userId}/posts?page=${page}&size=${size}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
     return buildFeedResponse(response, page, size);
   },
 
   detail: async (id: string, accessToken?: string) => {
     const response = await apiFetch<PostDetailApi>(`${POSTS_PREFIX}/${id}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
     return mapPostDetail({
       id: response.postId,
@@ -269,6 +280,19 @@ export const knowpostService = {
       updatedAt: response.updatedAt
     });
   },
+
+  listComments: (id: string, page = 1, size = 20, accessToken?: string | null) =>
+    apiFetch<PostCommentPage>(`${POSTS_PREFIX}/${id}/comments?page=${page}&size=${size}`, {
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
+    }),
+
+  createComment: (id: string, content: string) =>
+    apiFetch<PostComment>(`${POSTS_PREFIX}/${id}/comments`, {
+      method: "POST",
+      authMode: "required",
+      body: { content }
+    }),
 
   suggestDescription: (content: string, accessToken: string) =>
     apiFetch<{ model: string; description: string }>(`${LLM_PREFIX}/posts/description`, {
@@ -328,7 +352,8 @@ export const knowpostService = {
       viewerLiked?: boolean;
       viewerFavorited?: boolean;
     }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/summary`, {
-      accessToken
+      accessToken,
+      authMode: "optional"
     });
     return {
       entityType,
@@ -358,7 +383,8 @@ export const knowpostService = {
       viewerLiked?: boolean;
       viewerFavorited?: boolean;
     }>>(`${INTERACTIONS_PREFIX}/${entityType}/summary-batch?${usp.toString()}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
 
     return Object.fromEntries(

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { ApiError } from "@/services/apiClient";
 import { adminService } from "@/services/adminService";
+import { useAuth } from "@/context/AuthContext";
 import type {
   CacheMetrics,
   CacheRegion,
@@ -31,6 +34,19 @@ const hitRate = (m: CacheMetrics) => {
   return Math.round((m.localHitCount / total) * 100);
 };
 
+const formatAdminError = (error: unknown) => {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return "登录已过期，请重新登录后再访问运维中心。";
+    }
+    if (error.status === 403) {
+      return "当前账号没有管理员权限，不能访问运维中心。";
+    }
+    return error.message || `运维接口请求失败 (${error.status})`;
+  }
+  return error instanceof Error ? error.message : "运维数据加载失败";
+};
+
 /* ---------- types ---------- */
 type Drawer =
   | { type: "runtime"; data: RuntimeData }
@@ -44,21 +60,29 @@ type Drawer =
 
 /* ================================================================ */
 const AdminPage = () => {
+  const { user, tokens, isLoading: authLoading } = useAuth();
   const [snapshot, setSnapshot] = useState<OpsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<Drawer | null>(null);
+  const isAdmin = user?.role?.toUpperCase() === "ADMIN";
 
   const fetchAll = useCallback(async () => {
+    if (authLoading || !tokens || !isAdmin) {
+      return;
+    }
     setLoading(true);
+    setError(null);
     try {
       const snap = await adminService.getSnapshot(20);
       setSnapshot(snap);
-    } catch {
-      /* silent */
+    } catch (err) {
+      setSnapshot(null);
+      setError(formatAdminError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authLoading, isAdmin, tokens]);
 
   useEffect(() => {
     fetchAll();
@@ -72,12 +96,44 @@ const AdminPage = () => {
   const hotKeysDanger = snapshot ? snapshot.hotKeys.filter((k) => k.level === "high").length : 0;
 
   /* ================ LAYOUT ================ */
+  if (authLoading) {
+    return (
+      <div className={styles.loading}>
+        <span className={styles.spin} />
+        正在确认登录状态...
+      </div>
+    );
+  }
+
+  if (!tokens) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
+    return (
+      <AccessDenied
+        title="无权访问运维中心"
+        message="当前账号不是管理员。为了避免误操作，运维面板只对 ADMIN 角色开放。"
+      />
+    );
+  }
   if (loading) {
     return (
       <div className={styles.loading}>
         <span className={styles.spin} />
         加载中...
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <AccessDenied
+        title="运维数据加载失败"
+        message={error}
+        actionLabel="重试"
+        onAction={() => void fetchAll()}
+      />
     );
   }
 
@@ -236,6 +292,38 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
+
+function AccessDenied({
+  title,
+  message,
+  actionLabel,
+  onAction
+}: {
+  title: string;
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className={styles.guardPage}>
+      <div className={styles.guardCard}>
+        <p className={styles.guardEyebrow}>Admin Guard</p>
+        <h1 className={styles.guardTitle}>{title}</h1>
+        <p className={styles.guardText}>{message}</p>
+        <div className={styles.guardActions}>
+          {onAction ? (
+            <button className={`${styles.formBtn} ${styles.formBtnPrimary}`} onClick={onAction}>
+              {actionLabel ?? "重试"}
+            </button>
+          ) : null}
+          <Link className={styles.guardLink} to="/">
+            返回首页
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ================================================================ */
 /* Drawer Content */

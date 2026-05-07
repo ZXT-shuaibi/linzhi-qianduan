@@ -22,32 +22,36 @@ export const authService = {
   sendCode: (payload: SendCodeRequest) =>
     apiFetch<SendCodeResponse>(`${AUTH_PREFIX}/send-code`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
   register: (payload: RegisterRequest) =>
     apiFetch<RegisterResponse>(`${AUTH_PREFIX}/register`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
   login: (payload: LoginRequest) =>
     apiFetch<LoginResponse>(`${AUTH_PREFIX}/login`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
   resetPassword: (payload: PasswordResetRequest) =>
     apiFetch<ActionResult>(`${AUTH_PREFIX}/password/reset`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
-  logout: (payload: LogoutRequest, accessToken: string) =>
+  logout: (payload: LogoutRequest, _accessToken: string) =>
     apiFetch<void>(`${AUTH_PREFIX}/logout`, {
       method: "POST",
       body: payload,
-      accessToken
+      authMode: "none"
     }),
 
   fetchCurrentUser: async (accessToken: string) => {
@@ -59,7 +63,8 @@ export const authService = {
       userId: response.userId,
       phone: response.phone ?? null,
       account: response.account ?? null,
-      nickname: response.nickname
+      nickname: response.nickname,
+      role: response.role ?? undefined
     } satisfies AuthenticatedUser;
   },
 
@@ -74,6 +79,6 @@ export const authService = {
     apiFetch<RefreshResponse>(`${AUTH_PREFIX}/token/refresh`, {
       method: "POST",
       body: { refreshToken },
-      accessToken: null
+      authMode: "none"
     })
 };

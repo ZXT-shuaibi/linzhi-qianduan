@@ -129,3 +129,24 @@ export type CounterResponse = {
   liked?: boolean;
   faved?: boolean;
 };
+
+export type PostCommentAuthor = {
+  userId: string;
+  nickname?: string | null;
+  avatar?: string | null;
+};
+
+export type PostComment = {
+  commentId: string;
+  postId: string;
+  content: string;
+  author: PostCommentAuthor;
+  createdAt?: string | null;
+};
+
+export type PostCommentPage = {
+  items: PostComment[];
+  page: number;
+  size: number;
+  hasMore: boolean;
+};

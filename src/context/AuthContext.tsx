@@ -99,6 +99,17 @@ const persistUser = (user: AuthenticatedUser | null) => {
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
 };
 
+const parseJwtRole = (token: string): string | undefined => {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return undefined;
+    const json = JSON.parse(atob(payload));
+    return json.role;
+  } catch {
+    return undefined;
+  }
+};
+
 const parseInstantToMillis = (value: string): number => {
   const numeric = Number(value);
   if (!Number.isNaN(numeric)) {
@@ -128,9 +139,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchUser = useCallback(async (accessToken: string) => {
     try {
       const authUser = await authService.fetchCurrentUser(accessToken);
-      let nextUser: AuthenticatedUser = authUser;
+      let nextUser: AuthenticatedUser = { ...authUser, role: parseJwtRole(accessToken) };
       try {
-        nextUser = await authService.fetchCurrentProfile(accessToken);
+        nextUser = { ...await authService.fetchCurrentProfile(accessToken), role: parseJwtRole(accessToken) };
       } catch (profileError) {
         console.warn("获取完整个人资料失败，已保留认证域用户信息", profileError);
       }

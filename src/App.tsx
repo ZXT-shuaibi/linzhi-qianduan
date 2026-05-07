@@ -9,6 +9,7 @@ import ProfilePage from "./pages/ProfilePage";
 import UserProfilePage from "./pages/UserProfilePage";
 import EditProfilePage from "./pages/EditProfilePage";
 import CourseDetailPage from "./pages/CourseDetailPage";
+import AdminPage from "./pages/AdminPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 
@@ -25,6 +26,7 @@ function App() {
       <Route path="/profile/edit" element={<EditProfilePage />} />
       <Route path="/user/:id" element={<UserProfilePage />} />
       <Route path="/post/:id" element={<CourseDetailPage />} />
+      <Route path="/admin" element={<AdminPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

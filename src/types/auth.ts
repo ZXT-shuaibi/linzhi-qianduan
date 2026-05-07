@@ -79,6 +79,7 @@ export type LogoutRequest = {
 export type AuthenticatedUser = {
   id: string;
   userId: string;
+  role?: string;
   phone?: string | null;
   account?: string | null;
   email?: string | null;

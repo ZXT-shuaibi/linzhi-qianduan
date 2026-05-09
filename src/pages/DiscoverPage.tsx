@@ -66,17 +66,11 @@ const DiscoverPage = () => {
       let nextItems = response.items ?? [];
       if (tokens?.accessToken && nextItems.length) {
         const postIds = nextItems.filter((item) => item.entityType === "post").map((item) => item.id);
-        const merchantIds = nextItems.filter((item) => item.entityType === "merchant").map((item) => item.id);
-        const [postCounters, merchantCounters] = await Promise.all([
-          postIds.length
-            ? knowpostService.countersBatch("post", postIds, tokens.accessToken)
-            : Promise.resolve({} as Record<string, CounterResponse>),
-          merchantIds.length
-            ? knowpostService.countersBatch("merchant", merchantIds, tokens.accessToken)
-            : Promise.resolve({} as Record<string, CounterResponse>)
-        ]);
+        const postCounters = postIds.length
+          ? await knowpostService.countersBatch("post", postIds, tokens.accessToken)
+          : {} as Record<string, CounterResponse>;
         nextItems = nextItems.map((item) => {
-          const counters = item.entityType === "post" ? postCounters[item.id] : merchantCounters[item.id];
+          const counters = item.entityType === "post" ? postCounters[item.id] : undefined;
           return counters
             ? {
                 ...item,
@@ -360,13 +354,7 @@ const DiscoverPage = () => {
                     <small>{formatDistance(item.distance)} · {item.address || "地址未提供"}</small>
                     <div className={styles.merchantFooter}>
                       <span>{item.tags.slice(0, 2).map((tag) => `#${tag.replace(/^#/, "")}`).join(" ") || "附近商家"}</span>
-                      <LikeFavBar
-                        entityId={item.id}
-                        entityType="merchant"
-                        compact
-                        initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
-                        initialState={{ liked: item.liked, faved: item.faved }}
-                      />
+                      <span>{item.likeCount} likes / {item.favoriteCount} saves</span>
                     </div>
                   </div>
                 </article>

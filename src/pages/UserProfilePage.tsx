@@ -163,7 +163,7 @@ const UserProfilePage = () => {
                   summary={item.description ?? ""}
                   tags={item.tags ?? []}
                   isTop={item.isTop}
-                  teacher={{ name: item.authorNickname, avatarUrl: item.authorAvatar ?? item.authorAvator }}
+                  teacher={{ name: item.authorNickname, avatarUrl: item.authorAvatar }}
                   coverImage={item.coverImage}
                   to={`/post/${item.id}`}
                   className={styles.postCard}

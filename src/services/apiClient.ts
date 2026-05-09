@@ -12,7 +12,9 @@ const TOKEN_CHANGED_EVENT = "linzhi_auth_tokens_changed";
 const TOKEN_EXPIRY_SKEW_MS = 5_000;
 const AUTH_REFRESH_PATH = "/api/v1/auth/token/refresh";
 
-const getBaseUrl = () => {
+export type AuthMode = "none" | "optional" | "required";
+
+export const getApiBaseUrl = () => {
   const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
   return envBase?.replace(/\/$/, "") ?? "";
 };
@@ -22,7 +24,7 @@ export type ApiFetchOptions = {
   headers?: Record<string, string>;
   body?: unknown;
   accessToken?: string | null;
-  authMode?: "none" | "optional" | "required";
+  authMode?: AuthMode;
   signal?: AbortSignal;
 };
 
@@ -173,8 +175,29 @@ const refreshStoredTokens = async (baseUrl: string): Promise<StoredTokens> => {
   return refreshPromise;
 };
 
+export async function getAccessTokenForRequest(
+  authMode: AuthMode = "required",
+  accessToken?: string | null
+): Promise<string | null> {
+  if (authMode === "none") {
+    return null;
+  }
+  if (accessToken !== undefined) {
+    return accessToken;
+  }
+  const token = readStoredAccessToken();
+  if (token || authMode === "optional") {
+    return token;
+  }
+  return (await refreshStoredTokens(getApiBaseUrl())).accessToken;
+}
+
+export async function refreshAccessTokenForRequest(): Promise<string> {
+  return (await refreshStoredTokens(getApiBaseUrl())).accessToken;
+}
+
 export async function apiFetch<TResponse>(path: string, options: ApiFetchOptions = {}): Promise<TResponse> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const { method = "GET", headers = {}, body, accessToken, authMode = "required", signal } = options;
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   const url = baseUrl ? `${baseUrl}${path}` : path;

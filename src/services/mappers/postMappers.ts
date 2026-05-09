@@ -43,7 +43,6 @@ export const mapFeedPreview = (source: PostPreviewSource): FeedItem => ({
   tags: source.tags ?? [],
   tagJson: source.tagJson ?? undefined,
   authorAvatar: source.authorAvatar ?? undefined,
-  authorAvator: source.authorAvatar ?? undefined,
   authorNickname: source.authorNickname ?? "社区用户",
   authorId: source.authorId ?? undefined,
   authorSocialCounters: source.authorSocialCounters,

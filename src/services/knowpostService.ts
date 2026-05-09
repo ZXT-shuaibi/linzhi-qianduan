@@ -302,45 +302,45 @@ export const knowpostService = {
     }),
 
   like: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
       method: "POST",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       liked: response.active ?? true
     } satisfies LikeActionResponse;
   },
 
   unlike: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
       method: "DELETE",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       liked: response.active ?? false
     } satisfies LikeActionResponse;
   },
 
   fav: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
       method: "POST",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       faved: response.active ?? true
     } satisfies FavActionResponse;
   },
 
   unfav: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
       method: "DELETE",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       faved: response.active ?? false
     } satisfies FavActionResponse;
   },

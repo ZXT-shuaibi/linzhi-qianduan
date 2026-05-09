@@ -58,7 +58,6 @@ export type FeedItem = {
   tags: string[];
   tagJson?: string;
   authorAvatar?: string;
-  authorAvator?: string;
   authorNickname: string;
   authorId?: string;
   authorSocialCounters?: SocialCounters;

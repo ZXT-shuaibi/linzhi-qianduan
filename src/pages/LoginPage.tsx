@@ -31,7 +31,6 @@ const LoginPage = () => {
   const [resetCode, setResetCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -390,10 +389,6 @@ const LoginPage = () => {
                     )}
 
                     <div className={styles.rowBetween}>
-                      <label className={styles.checkboxRow}>
-                        <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
-                        保持登录状态
-                      </label>
                       <button type="button" className={styles.textButton} onClick={() => switchView("reset")}>
                         忘记了？
                       </button>

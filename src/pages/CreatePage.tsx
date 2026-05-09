@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import TagInput from "@/components/common/TagInput";
 import CommunityTopNav from "@/components/layout/CommunityTopNav";
@@ -9,6 +9,11 @@ import type { PostLocation } from "@/types/knowpost";
 import styles from "./CreatePage.module.css";
 
 const MAX_IMAGES = 15;
+
+type UploadedImage = {
+  value: string;
+  previewUrl: string;
+};
 
 const resolveBrowserPostLocation = () =>
   new Promise<PostLocation | null>((resolve) => {
@@ -53,8 +58,14 @@ const CreatePage = () => {
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
-  const [uploadedImgUrls, setUploadedImgUrls] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const objectPreviewUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => () => {
+    objectPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    objectPreviewUrlsRef.current = [];
+  }, []);
 
   const ensureDraft = async () => {
     if (postId) return postId;
@@ -75,7 +86,7 @@ const CreatePage = () => {
     setMessage(null);
     try {
       const id = await ensureDraft();
-      const remain = Math.max(0, MAX_IMAGES - uploadedImgUrls.length);
+      const remain = Math.max(0, MAX_IMAGES - uploadedImages.length);
       const picked = Array.from(files).slice(0, remain);
       if (!picked.length) {
         setError(`最多只能上传 ${MAX_IMAGES} 张图片`);
@@ -93,7 +104,13 @@ const CreatePage = () => {
           ext
         });
         await uploadToPresigned(presign.putUrl, presign.headers, file);
-        setUploadedImgUrls((current) => [...current, presign.publicUrl ?? presign.putUrl.split("?")[0]]);
+        const publicImageUrl = presign.publicUrl?.trim();
+        const imageUrl = publicImageUrl || presign.objectKey;
+        const imagePreviewUrl = publicImageUrl || URL.createObjectURL(file);
+        if (!publicImageUrl) {
+          objectPreviewUrlsRef.current.push(imagePreviewUrl);
+        }
+        setUploadedImages((current) => [...current, { value: imageUrl, previewUrl: imagePreviewUrl }]);
       }
       setMessage(`已上传 ${picked.length} 张图片`);
     } catch (err) {
@@ -151,7 +168,7 @@ const CreatePage = () => {
       await knowpostService.update(id, {
         title: title.trim(),
         tags,
-        imgUrls: uploadedImgUrls.length ? uploadedImgUrls : undefined,
+        imgUrls: uploadedImages.length ? uploadedImages.map((image) => image.value) : undefined,
         visible,
         description: summary.trim() || undefined,
         location: location ?? undefined
@@ -244,17 +261,17 @@ const CreatePage = () => {
               onChange={(event) => void handleSelectImages(event.target.files)}
             />
             <div className={styles.uploadHalo}>
-              <span>{uploadedImgUrls.length || "+"}</span>
+              <span>{uploadedImages.length || "+"}</span>
             </div>
             <strong>{imageUploading ? "正在上传图片..." : "拖入灵感图片或点击上传"}</strong>
             <small>最多 {MAX_IMAGES} 张，图片会通过 `/api/v1/storage/presign` 上传</small>
           </div>
 
-          {uploadedImgUrls.length > 0 ? (
+          {uploadedImages.length > 0 ? (
             <div className={styles.thumbGrid}>
-              {uploadedImgUrls.map((url, index) => (
-                <button key={`${url}-${index}`} type="button" onClick={() => setPreviewUrl(url)}>
-                  <img src={url} alt={`已上传图片 ${index + 1}`} />
+              {uploadedImages.map((image, index) => (
+                <button key={`${image.value}-${index}`} type="button" onClick={() => setPreviewUrl(image.previewUrl)}>
+                  <img src={image.previewUrl} alt={`已上传图片 ${index + 1}`} />
                 </button>
               ))}
             </div>

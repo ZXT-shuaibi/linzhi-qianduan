@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [tokens, setTokens] = useState<AuthTokens | null>(() => readStoredTokens());
   const [user, setUser] = useState<AuthenticatedUser | null>(() => readStoredUser());
   const [isLoading, setIsLoading] = useState<boolean>(!!readStoredTokens());
-  const fetchingRef = useRef<Promise<void> | null>(null);
+  const fetchingRef = useRef<Promise<AuthenticatedUser | null> | null>(null);
 
   const fetchUser = useCallback(async (accessToken: string) => {
     try {
@@ -149,12 +149,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       setUser(nextUser);
       persistUser(nextUser);
+      return nextUser;
     } catch (error) {
       console.error("获取当前用户信息失败", error);
       setUser(null);
       setTokens(null);
       persistTokens(null);
       persistUser(null);
+      return null;
     }
   }, []);
 
@@ -191,15 +193,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const nextTokens = toTokens(loginResponse.tokens);
     setTokens(nextTokens);
     persistTokens(nextTokens);
-    await fetchUser(nextTokens.accessToken);
-    const role = parseJwtRole(nextTokens.accessToken);
-    const currentUser = await authService
-      .fetchCurrentProfile(nextTokens.accessToken)
-      .catch(() => authService.fetchCurrentUser(nextTokens.accessToken));
-    const currentUserWithRole = { ...currentUser, role: currentUser.role ?? role };
-    setUser(currentUserWithRole);
-    persistUser(currentUserWithRole);
-    return currentUserWithRole;
+    const currentUser = await fetchUser(nextTokens.accessToken);
+    if (!currentUser) {
+      throw new Error("Failed to fetch current user");
+    }
+    return currentUser;
   }, [fetchUser]);
 
   const logout = useCallback(async () => {

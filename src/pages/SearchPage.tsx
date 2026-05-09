@@ -129,6 +129,7 @@ const SearchPage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [showLoginHint, setShowLoginHint] = useState(false);
@@ -146,17 +147,19 @@ const SearchPage = () => {
     }
     setQ(text);
     setLoading(true);
+    setSearchError(null);
     try {
       const response = await searchService.query({ q: text, size, tags: tags.trim() || undefined });
       setItems(response.items ?? []);
       setPage(response.page);
       setAfter(response.nextAfter ?? null);
       setHasMore(Boolean(response.hasMore));
-    } catch {
+    } catch (err) {
       setItems([]);
       setPage(1);
       setAfter(null);
       setHasMore(false);
+      setSearchError(err instanceof Error ? err.message : "搜索失败，请稍后再试");
     } finally {
       setLoading(false);
     }
@@ -190,13 +193,15 @@ const SearchPage = () => {
   const loadMore = async () => {
     if (!q.trim() || !after) return;
     setLoading(true);
+    setSearchError(null);
     try {
       const response = await searchService.query({ q: q.trim(), page: page + 1, size, tags: tags.trim() || undefined, after });
       setItems((current) => [...current, ...(response.items ?? [])]);
       setPage(response.page);
       setAfter(response.nextAfter ?? null);
       setHasMore(Boolean(response.hasMore));
-    } catch {
+    } catch (err) {
+      setSearchError(err instanceof Error ? err.message : "加载更多失败，请稍后再试");
       // 加载更多失败时保留当前结果，避免清空用户已经看到的内容。
     } finally {
       setLoading(false);
@@ -327,7 +332,8 @@ const SearchPage = () => {
           </div>
 
           {loading && !items.length ? <div className={styles.stateCard}>正在读取社区内容...</div> : null}
-          {!loading && q.trim() && !items.length ? (
+          {searchError ? <div className={styles.stateCard}>{searchError}</div> : null}
+          {!loading && !searchError && q.trim() && !items.length ? (
             <div className={styles.stateCard}>暂无匹配内容，可以换一个更生活化的问题试试。</div>
           ) : null}
 

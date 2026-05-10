@@ -74,8 +74,8 @@ export const relationService = {
   followers: async (userId: string, size = 20, page = 1, _cursor?: number, accessToken?: string) =>
     (await relationService.followersPage(userId, size, page, accessToken)).items,
 
-  counters: (userId: string, accessToken: string) =>
+  counters: (userId: string) =>
     apiFetch<RelationCountersResponse>(`${SOCIAL_PREFIX}/counters/users/${userId}`, {
-      accessToken
+      authMode: "none"
     })
 };

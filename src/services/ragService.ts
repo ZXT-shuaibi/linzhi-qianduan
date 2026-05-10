@@ -49,7 +49,7 @@ export async function streamRagAnswer(
     });
   };
 
-  let response = await send(await getAccessTokenForRequest("required"));
+  let response = await send(await getAccessTokenForRequest("optional"));
   if (response.status === 401) {
     response = await send(await refreshAccessTokenForRequest());
   }

@@ -9,10 +9,10 @@ export type SendCodeRequest = {
 
 export type SendCodeResponse = {
   phone?: string;
-  identifier: string;
   scene: VerificationScene;
   code: string;
   expireSeconds: number;
+  resendAfterSeconds?: number;
 };
 
 export type RegisterRequest = {
@@ -27,7 +27,7 @@ export type RegisterRequest = {
 export type RegisterResponse = {
   userId: string;
   phone: string;
-  account: string;
+  account?: string;
   nextAction: string;
   status: string;
 };

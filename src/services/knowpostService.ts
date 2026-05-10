@@ -215,7 +215,7 @@ export const knowpostService = {
     if (typeof params?.lng === "number") usp.set("lng", String(params.lng));
     if (params?.geoHash) usp.set("geoHash", params.geoHash);
 
-    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`);
+    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`, { authMode: "optional" });
     return buildFeedResponse(response, page, size);
   },
 
@@ -260,11 +260,12 @@ export const knowpostService = {
     });
   },
 
-  suggestDescription: (content: string, accessToken: string) =>
+  suggestDescription: (content: string, accessToken?: string) =>
     apiFetch<{ model: string; description: string }>(`${LLM_PREFIX}/posts/description`, {
       method: "POST",
       body: { content },
-      accessToken
+      accessToken: accessToken ?? null,
+      authMode: "optional"
     }),
 
   like: async (entityId: string, accessToken: string, entityType = "post") => {

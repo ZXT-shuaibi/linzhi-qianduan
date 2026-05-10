@@ -76,10 +76,12 @@ export type LogoutRequest = {
 };
 
 export type AuthenticatedUser = {
-  id: number;
+  id: string;
   userId: string;
+  role?: string;
   phone?: string | null;
   account?: string | null;
+  email?: string | null;
   nickname: string;
   avatar?: string | null;
   bio?: string | null;

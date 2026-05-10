@@ -49,6 +49,13 @@ export const authService = {
     return mapAuthenticatedUser(mapProfileResponse(response));
   },
 
+  fetchCurrentProfile: async (accessToken: string) => {
+    const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`, {
+      accessToken
+    });
+    return mapAuthenticatedUser(mapProfileResponse(response));
+  },
+
   refresh: (refreshToken: string) =>
     apiFetch<RefreshResponse>(`${AUTH_PREFIX}/token/refresh`, {
       method: "POST",

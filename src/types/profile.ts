@@ -16,12 +16,13 @@ export type RelationStatus = {
 };
 
 export type ProfileResponse = {
-  id: number;
+  id: string;
   userId: string;
   nickname: string;
   avatar?: string | null;
   bio?: string | null;
   account?: string | null;
+  email?: string | null;
   phone?: string | null;
   gender?: Gender;
   birthday?: string | null;
@@ -42,6 +43,9 @@ export type ProfileUpdateRequest = {
   school?: string;
   tags?: string[];
   tagJson?: string;
+  clearBio?: boolean;
+  clearBirthday?: boolean;
+  clearSchool?: boolean;
 };
 
 export type ProfileListResponse = {

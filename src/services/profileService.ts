@@ -35,7 +35,9 @@ export const profileService = {
         birthday: payload.birthday || undefined,
         school: payload.school,
         tags: parseTags(payload),
-        clearFields: payload.clearFields?.length ? payload.clearFields : undefined
+        clearBio: payload.clearBio,
+        clearBirthday: payload.clearBirthday,
+        clearSchool: payload.clearSchool
       }
     });
     return mapProfileResponse(response);

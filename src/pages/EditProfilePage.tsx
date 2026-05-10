@@ -65,33 +65,20 @@ const EditProfilePage = () => {
     }
   };
 
-  const getClearFields = (): NonNullable<ProfileUpdateRequest["clearFields"]> => {
-    const clearFields: NonNullable<ProfileUpdateRequest["clearFields"]> = [];
-    if ((user?.bio ?? "").trim() && !bio.trim()) {
-      clearFields.push("bio");
-    }
-    if (user?.birthday && !birthday) {
-      clearFields.push("birthday");
-    }
-    if ((user?.school ?? "").trim() && !school.trim()) {
-      clearFields.push("school");
-    }
-    return clearFields;
-  };
-
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     setMessage(null);
-    const clearFields = getClearFields();
     const payload: ProfileUpdateRequest = {
       nickname: nickname.trim() || undefined,
       bio: bio.trim() || undefined,
+      clearBio: (user?.bio ?? "").trim() && !bio.trim() ? true : undefined,
+      clearBirthday: user?.birthday && !birthday ? true : undefined,
+      clearSchool: (user?.school ?? "").trim() && !school.trim() ? true : undefined,
       gender,
       birthday: birthday || undefined,
       school: school.trim() || undefined,
-      tags,
-      clearFields: clearFields.length ? clearFields : undefined
+      tags
     };
     try {
       await profileService.update(payload);

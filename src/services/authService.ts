@@ -2,8 +2,6 @@ import { apiFetch } from "./apiClient";
 import { mapAuthenticatedUser, mapProfileResponse, type ProfileApiPayload } from "@/services/mappers/profileMappers";
 import type {
   ActionResult,
-  AuthenticatedUser,
-  AuthUserResponse,
   LoginRequest,
   LoginResponse,
   LogoutRequest,
@@ -22,54 +20,29 @@ export const authService = {
   sendCode: (payload: SendCodeRequest) =>
     apiFetch<SendCodeResponse>(`${AUTH_PREFIX}/send-code`, {
       method: "POST",
-      body: payload,
-      authMode: "none"
+      body: payload
     }),
 
   register: (payload: RegisterRequest) =>
     apiFetch<RegisterResponse>(`${AUTH_PREFIX}/register`, {
       method: "POST",
-      body: payload,
-      authMode: "none"
+      body: payload
     }),
 
   login: (payload: LoginRequest) =>
     apiFetch<LoginResponse>(`${AUTH_PREFIX}/login`, {
       method: "POST",
-      body: payload,
-      authMode: "none"
-    }),
-
-  resetPassword: (payload: PasswordResetRequest) =>
-    apiFetch<ActionResult>(`${AUTH_PREFIX}/password/reset`, {
-      method: "POST",
-      body: payload,
-      authMode: "none"
+      body: payload
     }),
 
   logout: (payload: LogoutRequest, accessToken: string) =>
-    apiFetch<ActionResult>(`${AUTH_PREFIX}/logout`, {
+    apiFetch<void>(`${AUTH_PREFIX}/logout`, {
       method: "POST",
       body: payload,
-      accessToken,
-      authMode: "required"
+      accessToken
     }),
 
   fetchCurrentUser: async (accessToken: string) => {
-    const response = await apiFetch<AuthUserResponse>(`${AUTH_PREFIX}/me`, {
-      accessToken
-    });
-    return {
-      id: response.userId,
-      userId: response.userId,
-      phone: response.phone ?? null,
-      account: response.account ?? null,
-      nickname: response.nickname,
-      role: response.role ?? undefined
-    } satisfies AuthenticatedUser;
-  },
-
-  fetchCurrentProfile: async (accessToken: string) => {
     const response = await apiFetch<ProfileApiPayload>(`${PROFILE_PREFIX}/me`, {
       accessToken
     });
@@ -80,6 +53,13 @@ export const authService = {
     apiFetch<RefreshResponse>(`${AUTH_PREFIX}/token/refresh`, {
       method: "POST",
       body: { refreshToken },
-      authMode: "none"
+      accessToken: null
+    }),
+
+  resetPassword: (payload: PasswordResetRequest) =>
+    apiFetch<ActionResult>(`${AUTH_PREFIX}/password/reset`, {
+      method: "POST",
+      body: payload,
+      accessToken: null
     })
 };

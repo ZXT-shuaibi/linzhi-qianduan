@@ -2,8 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthExperience from "@/features/auth/AuthExperience";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError } from "@/services/apiClient";
 import { authService } from "@/services/authService";
+import { ApiError } from "@/services/apiClient";
 import type { LoginRequest } from "@/types/auth";
 import styles from "./AuthForm.module.css";
 
@@ -12,9 +12,16 @@ type LocationState = {
 };
 
 type LoginMode = "password" | "code";
-type AuthView = "login" | "register" | "reset";
+type AuthView = "login" | "register";
 
-const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+const isValidLoginIdentifier = (value: string) => /^1\d{10}$/.test(value);
+
+const readErrorCode = (error: unknown) => {
+  if (!(error instanceof ApiError) || typeof error.data !== "object" || error.data === null || !("code" in error.data)) {
+    return null;
+  }
+  return String((error.data as { code?: unknown }).code ?? "");
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -25,12 +32,7 @@ const LoginPage = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [smsCode, setSmsCode] = useState("");
-  const [captchaCode, setCaptchaCode] = useState("");
-  const [requireCaptcha, setRequireCaptcha] = useState(false);
-  const [resetPhone, setResetPhone] = useState("");
-  const [resetCode, setResetCode] = useState("");
-  const [resetPassword, setResetPassword] = useState("");
-  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,67 +53,31 @@ const LoginPage = () => {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
-  const clearFeedback = () => {
+  const switchMode = (nextMode: LoginMode) => {
+    setMode(nextMode);
     setError(null);
     setMessage(null);
   };
 
-  const switchMode = (nextMode: LoginMode) => {
-    setMode(nextMode);
-    clearFeedback();
-  };
-
-  const switchView = (nextView: AuthView) => {
-    setAuthView(nextView);
-    clearFeedback();
-    if (nextView === "reset") {
-      setResetPhone(identifier.trim());
-    }
-  };
-
   const handleSendCode = async () => {
-    const phone = identifier.trim();
+    const loginIdentifier = identifier.trim();
 
-    if (!/^1\d{10}$/.test(phone)) {
-      setError("请先填写 11 位手机号");
+    if (!isValidLoginIdentifier(loginIdentifier)) {
+      setError("请先填写正确的手机号");
       return;
     }
 
-    clearFeedback();
+    setError(null);
+    setMessage(null);
     setSendingCode(true);
     try {
       const result = await authService.sendCode({
-        identifier: phone,
+        identifier: loginIdentifier,
         scene: "login"
       });
       setSmsCode(result.code ?? "");
-      setMessage(result.code ? `验证码已发送，开发环境验证码为：${result.code}` : "验证码已发送");
-      setCountdown(Math.max(1, result.resendAfterSeconds ?? 60));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "验证码发送失败");
-    } finally {
-      setSendingCode(false);
-    }
-  };
-
-  const handleSendResetCode = async () => {
-    const phone = resetPhone.trim();
-
-    if (!/^1\d{10}$/.test(phone)) {
-      setError("请先填写 11 位手机号");
-      return;
-    }
-
-    clearFeedback();
-    setSendingCode(true);
-    try {
-      const result = await authService.sendCode({
-        identifier: phone,
-        scene: "password_reset"
-      });
-      setResetCode(result.code ?? "");
-      setMessage(result.code ? `验证码已发送，开发环境验证码为：${result.code}` : "验证码已发送");
-      setCountdown(Math.max(1, result.resendAfterSeconds ?? 60));
+      setMessage(`验证码已发送，开发环境验证码为：${result.code}`);
+      setCountdown(Math.max(1, result.expireSeconds ?? 60));
     } catch (err) {
       setError(err instanceof Error ? err.message : "验证码发送失败");
     } finally {
@@ -121,86 +87,35 @@ const LoginPage = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    clearFeedback();
-    const trimmedIdentifier = identifier.trim();
-
-    if (!/^1\d{10}$/.test(trimmedIdentifier)) {
-      setError("请填写 11 位手机号");
-      return;
-    }
-
+    setError(null);
+    setMessage(null);
     setSubmitting(true);
     try {
-      const captchaCodeTrimmed = captchaCode.trim();
-      const payload: LoginRequest = mode === "password"
+      const trimmedIdentifier = identifier.trim();
+      const payload: LoginRequest = mode === "code"
         ? {
-            identifier: trimmedIdentifier,
-            password,
-            channel: "H5",
-            ...(requireCaptcha ? { captchaCode: captchaCodeTrimmed } : {})
-          }
+          identifier: trimmedIdentifier,
+          smsCode: smsCode.trim(),
+          channel: "H5"
+        }
         : {
-            identifier: trimmedIdentifier,
-            channel: "H5",
-            captchaCode: smsCode.trim()
-          };
+          identifier: trimmedIdentifier,
+          password,
+          channel: "H5"
+        };
       await login(payload);
-      setRequireCaptcha(false);
       navigate(from, { replace: true });
     } catch (err) {
-      if (err instanceof ApiError && err.data != null) {
-        const body = err.data as Record<string, unknown>;
-        if (body.code === "CAPTCHA_REQUIRED") {
-          setRequireCaptcha(true);
-          setError("安全验证：请先获取并输入短信验证码");
-          return;
+      const code = readErrorCode(err);
+      if (code === "AUTH_400_CAPTCHA_REQUIRED") {
+        setMode("code");
+        setError("当前手机号需要验证码确认，请获取验证码后登录");
+      } else {
+        if (code === "AUTH_400_INVALID_CAPTCHA") {
+          setMode("code");
         }
+        setError(err instanceof Error ? err.message : "登录失败，请稍后重试");
       }
-      setError(err instanceof Error ? err.message : "登录失败，请稍后重试");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleResetSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    clearFeedback();
-
-    const phone = resetPhone.trim();
-    if (!/^1\d{10}$/.test(phone)) {
-      setError("请填写 11 位手机号");
-      return;
-    }
-    if (!/^\d{6}$/.test(resetCode.trim())) {
-      setError("请输入 6 位验证码");
-      return;
-    }
-    if (!passwordPattern.test(resetPassword)) {
-      setError("新密码至少 8 位，并同时包含字母和数字");
-      return;
-    }
-    if (resetPassword !== resetConfirmPassword) {
-      setError("两次输入的新密码不一致");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await authService.resetPassword({
-        phone,
-        smsCode: resetCode.trim(),
-        newPassword: resetPassword
-      });
-      setIdentifier(phone);
-      setPassword("");
-      setResetPassword("");
-      setResetConfirmPassword("");
-      setMode("password");
-      setAuthView("login");
-      setCountdown(0);
-      setMessage("密码已重置，请使用新密码登录");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "密码重置失败，请稍后重试");
     } finally {
       setSubmitting(false);
     }
@@ -209,11 +124,6 @@ const LoginPage = () => {
   const isDisabled = submitting
     || !identifier.trim()
     || (mode === "password" ? !password.trim() : !smsCode.trim());
-  const isResetDisabled = submitting
-    || !resetPhone.trim()
-    || !resetCode.trim()
-    || !resetPassword.trim()
-    || !resetConfirmPassword.trim();
 
   return (
     <AuthExperience>
@@ -226,190 +136,93 @@ const LoginPage = () => {
         <div className={styles.moduleViewport}>
           <div className={`${styles.moduleSlider} ${authView === "register" ? styles.moduleSliderRegister : ""}`}>
             <div className={styles.modulePane}>
-              {authView === "reset" ? (
-                <>
-                  <div className={styles.titleBlock}>
-                    <span className={styles.eyebrow}>找回密码</span>
-                    <h2 className={styles.title}>用手机号重设访问口令。</h2>
-                    <p className={styles.subtitle}>验证码校验通过后，新密码会立即生效。</p>
+              <div className={styles.tabs} aria-label="登录方式">
+                <button
+                  type="button"
+                  className={`${styles.tab} ${mode === "password" ? styles.tabActive : ""}`}
+                  onClick={() => switchMode("password")}
+                >
+                  密码登录
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.tab} ${mode === "code" ? styles.tabActive : ""}`}
+                  onClick={() => switchMode("code")}
+                >
+                  验证码登录
+                </button>
+              </div>
+
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.field}>
+                  <input
+                    className={styles.input}
+                    value={identifier}
+                    onChange={(event) => setIdentifier(event.target.value)}
+                    placeholder="手机号"
+                    autoComplete="tel"
+                  />
+                </div>
+
+                {mode === "password" ? (
+                  <div className={styles.field}>
+                    <input
+                      className={styles.input}
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="密码"
+                      autoComplete="current-password"
+                    />
                   </div>
+                ) : null}
 
-                  <form className={styles.form} onSubmit={handleResetSubmit}>
-                    <div className={styles.field}>
+                {mode === "code" ? (
+                  <div className={styles.fieldGroup}>
+                    <div className={styles.codeRow}>
                       <input
                         className={styles.input}
-                        value={resetPhone}
-                        onChange={(event) => setResetPhone(event.target.value)}
-                        placeholder="手机号"
-                        autoComplete="tel"
+                        value={smsCode}
+                        onChange={(event) => setSmsCode(event.target.value)}
+                        placeholder="验证码"
+                        autoComplete="one-time-code"
                       />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                      <div className={styles.codeRow}>
-                        <input
-                          className={styles.input}
-                          value={resetCode}
-                          onChange={(event) => setResetCode(event.target.value)}
-                          placeholder="验证码"
-                          autoComplete="one-time-code"
-                        />
-                        <button
-                          type="button"
-                          className={styles.codeButton}
-                          disabled={sendingCode || countdown > 0}
-                          onClick={() => void handleSendResetCode()}
-                        >
-                          {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className={styles.field}>
-                      <input
-                        className={styles.input}
-                        type="password"
-                        value={resetPassword}
-                        onChange={(event) => setResetPassword(event.target.value)}
-                        placeholder="新密码"
-                        autoComplete="new-password"
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <input
-                        className={styles.input}
-                        type="password"
-                        value={resetConfirmPassword}
-                        onChange={(event) => setResetConfirmPassword(event.target.value)}
-                        placeholder="再次输入新密码"
-                        autoComplete="new-password"
-                      />
-                    </div>
-
-                    {error ? <div className={styles.error}>{error}</div> : null}
-                    {message ? <div className={styles.success}>{message}</div> : null}
-
-                    <button type="submit" className={styles.submitButton} disabled={isResetDisabled}>
-                      {submitting ? "提交中..." : "重置密码"}
-                    </button>
-                  </form>
-
-                  <div className={styles.secondaryActions}>
-                    想起密码了？
-                    <button type="button" onClick={() => switchView("login")}>
-                      返回登录
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className={styles.tabs} aria-label="登录方式">
-                    <button
-                      type="button"
-                      className={`${styles.tab} ${mode === "password" ? styles.tabActive : ""}`}
-                      onClick={() => switchMode("password")}
-                    >
-                      密码登录
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.tab} ${mode === "code" ? styles.tabActive : ""}`}
-                      onClick={() => switchMode("code")}
-                    >
-                      验证码登录
-                    </button>
-                  </div>
-
-                  <form className={styles.form} onSubmit={handleSubmit}>
-                    <div className={styles.field}>
-                      <input
-                        className={styles.input}
-                        value={identifier}
-                        onChange={(event) => setIdentifier(event.target.value)}
-                        placeholder="手机号"
-                        autoComplete="tel"
-                      />
-                    </div>
-
-                    {mode === "password" ? (
-                      <>
-                        <div className={styles.field}>
-                          <input
-                            className={styles.input}
-                            type="password"
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            placeholder="密码"
-                            autoComplete="current-password"
-                          />
-                        </div>
-                        {requireCaptcha && (
-                          <div className={styles.fieldGroup}>
-                            <div className={styles.codeRow}>
-                              <input
-                                className={styles.input}
-                                value={captchaCode}
-                                onChange={(event) => setCaptchaCode(event.target.value)}
-                                placeholder="验证码"
-                                autoComplete="one-time-code"
-                              />
-                              <button
-                                type="button"
-                                className={styles.codeButton}
-                                disabled={sendingCode || countdown > 0}
-                                onClick={() => void handleSendCode()}
-                              >
-                                {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className={styles.fieldGroup}>
-                        <div className={styles.codeRow}>
-                          <input
-                            className={styles.input}
-                            value={smsCode}
-                            onChange={(event) => setSmsCode(event.target.value)}
-                            placeholder="验证码"
-                            autoComplete="one-time-code"
-                          />
-                          <button
-                            type="button"
-                            className={styles.codeButton}
-                            disabled={sendingCode || countdown > 0}
-                            onClick={() => void handleSendCode()}
-                          >
-                            {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className={styles.rowBetween}>
-                      <button type="button" className={styles.textButton} onClick={() => switchView("reset")}>
-                        忘记了？
+                      <button
+                        type="button"
+                        className={styles.codeButton}
+                        disabled={sendingCode || countdown > 0}
+                        onClick={() => void handleSendCode()}
+                      >
+                        {countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
                       </button>
                     </div>
-
-                    {error ? <div className={styles.error}>{error}</div> : null}
-                    {message ? <div className={styles.success}>{message}</div> : null}
-
-                    <button type="submit" className={styles.submitButton} disabled={isDisabled}>
-                      {submitting ? "开启中..." : "开启邻里之光"}
-                    </button>
-                  </form>
-
-                  <div className={styles.secondaryActions}>
-                    还没有加入邻里？
-                    <button type="button" onClick={() => switchView("register")}>
-                      立即入驻
-                    </button>
                   </div>
-                </>
-              )}
+                ) : null}
+
+                <div className={styles.rowBetween}>
+                  <label className={styles.checkboxRow}>
+                    <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+                    保持登录状态
+                  </label>
+                  <button type="button" className={styles.textButton} onClick={() => switchMode(mode === "code" ? "password" : "code")}>
+                    {mode === "code" ? "返回密码登录" : "验证码登录"}
+                  </button>
+                </div>
+
+                {error ? <div className={styles.error}>{error}</div> : null}
+                {message ? <div className={styles.success}>{message}</div> : null}
+
+                <button type="submit" className={styles.submitButton} disabled={isDisabled}>
+                  {submitting ? "开启中..." : "开启邻里之光"}
+                </button>
+              </form>
+
+              <div className={styles.secondaryActions}>
+                还没有加入邻里？
+                <button type="button" onClick={() => setAuthView("register")}>
+                  立即入驻
+                </button>
+              </div>
             </div>
 
             <div className={`${styles.modulePane} ${styles.registerPane}`}>
@@ -419,7 +232,7 @@ const LoginPage = () => {
               <button type="button" className={styles.submitButton} onClick={() => navigate("/register", { state: { from } })}>
                 继续入驻
               </button>
-              <button type="button" className={styles.backButton} onClick={() => switchView("login")}>
+              <button type="button" className={styles.backButton} onClick={() => setAuthView("login")}>
                 返回登录
               </button>
             </div>

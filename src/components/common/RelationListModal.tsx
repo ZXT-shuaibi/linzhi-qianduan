@@ -9,13 +9,13 @@ type Mode = "following" | "followers";
 type RelationListModalProps = {
   open: boolean;
   onClose: () => void;
-  userId: string;
+  userId: number;
   mode: Mode;
 };
 
 const initialLimit = 20;
 
-const initialChar = (name?: string, id?: string) =>
+const initialChar = (name?: string, id?: number) =>
   (name?.trim().charAt(0).toUpperCase() || String(id ?? "").trim().charAt(0).toUpperCase() || "?");
 
 const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalProps) => {
@@ -27,23 +27,31 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
 
+  const resolveHasMore = (nextPage: { hasNext?: boolean; hasMore?: boolean } | undefined, listLength: number) =>
+    nextPage?.hasNext ?? nextPage?.hasMore ?? listLength >= initialLimit;
+
   useEffect(() => {
     if (!open) return;
 
     let cancelled = false;
     const run = async () => {
+      if (!tokens?.accessToken) {
+        setError("请登录后查看列表");
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
         const response = mode === "following"
-          ? await relationService.following(userId, initialLimit, 1, undefined, tokens?.accessToken)
-          : await relationService.followers(userId, initialLimit, 1, undefined, tokens?.accessToken);
+          ? await relationService.followingPage(userId, initialLimit, 1, tokens.accessToken)
+          : await relationService.followersPage(userId, initialLimit, 1, tokens.accessToken);
         if (cancelled) return;
 
         const list = response.items;
         setProfiles(list);
-        setPage(response.page);
-        setHasMore(response.hasMore);
+        setPage(response.page?.page ?? 1);
+        setHasMore(resolveHasMore(response.page, list.length));
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "加载失败");
@@ -59,22 +67,27 @@ const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalPro
     return () => {
       cancelled = true;
     };
-  }, [initialLimit, open, userId, mode, tokens?.accessToken]);
+  }, [open, userId, mode, tokens?.accessToken]);
 
   const loadMore = async () => {
     if (loading || !hasMore) return;
+
+    if (!tokens?.accessToken) {
+      setError("请登录后查看列表");
+      return;
+    }
 
     setLoading(true);
     setError(null);
     try {
       const nextPage = page + 1;
       const response = mode === "following"
-        ? await relationService.following(userId, initialLimit, nextPage, undefined, tokens?.accessToken)
-        : await relationService.followers(userId, initialLimit, nextPage, undefined, tokens?.accessToken);
+        ? await relationService.followingPage(userId, initialLimit, nextPage, tokens.accessToken)
+        : await relationService.followersPage(userId, initialLimit, nextPage, tokens.accessToken);
       const list = response.items;
       setProfiles((current) => [...current, ...list]);
-      setPage(response.page);
-      setHasMore(response.hasMore);
+      setPage(response.page?.page ?? nextPage);
+      setHasMore(resolveHasMore(response.page, list.length));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {

@@ -1,3 +1,5 @@
+import { getAccessTokenForRequest, getApiBaseUrl, refreshAccessTokenForRequest } from "@/services/apiClient";
+
 export type RagStreamRequest = {
   question: string;
   postId?: string;
@@ -20,23 +22,6 @@ export type RagStreamChunk = {
   errorCode?: string | null;
 };
 
-const getBaseUrl = () => {
-  const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  return envBase?.replace(/\/$/, "") ?? "";
-};
-
-const readAccessToken = () => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("linzhi_auth_tokens");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { accessToken?: string };
-    return parsed.accessToken ?? null;
-  } catch {
-    return null;
-  }
-};
-
 export async function streamRagAnswer(
   payload: RagStreamRequest,
   handlers: {
@@ -46,23 +31,28 @@ export async function streamRagAnswer(
     signal?: AbortSignal;
   }
 ) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "text/event-stream"
+  const baseUrl = getApiBaseUrl();
+  const send = async (token: string | null) => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream"
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return fetch(`${baseUrl}/api/v1/rag/queries/stream`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: handlers.signal,
+      credentials: "include"
+    });
   };
-  const token = readAccessToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
 
-  const baseUrl = getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/rag/queries/stream`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-    signal: handlers.signal,
-    credentials: "include"
-  });
+  let response = await send(await getAccessTokenForRequest("required"));
+  if (response.status === 401) {
+    response = await send(await refreshAccessTokenForRequest());
+  }
 
   if (!response.ok || !response.body) {
     throw new Error(`RAG 请求失败：${response.status}`);

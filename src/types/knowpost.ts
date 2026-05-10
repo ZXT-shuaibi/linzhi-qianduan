@@ -1,3 +1,5 @@
+import type { RelationStatus, SocialCounters } from "@/types/profile";
+
 export type CreateDraftResponse = {
   id: string;
   status?: string;
@@ -29,6 +31,13 @@ export type ConfirmContentRequest = {
 
 export type VisibleScope = "public" | "followers" | "private";
 
+export type PostLocation = {
+  lat?: number | null;
+  lng?: number | null;
+  geoHash?: string | null;
+  address?: string | null;
+};
+
 export type UpdateKnowPostRequest = {
   title?: string;
   tags?: string[];
@@ -38,6 +47,7 @@ export type UpdateKnowPostRequest = {
   isTop?: boolean;
   description?: string;
   summary?: string;
+  location?: PostLocation;
 };
 
 export type FeedItem = {
@@ -48,9 +58,10 @@ export type FeedItem = {
   tags: string[];
   tagJson?: string;
   authorAvatar?: string;
-  authorAvator?: string;
   authorNickname: string;
-  authorId?: number;
+  authorId?: string;
+  authorSocialCounters?: SocialCounters;
+  authorRelationStatus?: RelationStatus;
   likeCount?: number;
   favoriteCount?: number;
   liked?: boolean;
@@ -79,8 +90,10 @@ export type KnowpostDetailResponse = {
   tags: string[];
   authorAvatar?: string;
   authorNickname: string;
-  authorId?: number;
+  authorId?: string;
   authorTagJson?: string;
+  authorSocialCounters?: SocialCounters;
+  authorRelationStatus?: RelationStatus;
   likeCount: number;
   favoriteCount: number;
   liked?: boolean;
@@ -88,7 +101,11 @@ export type KnowpostDetailResponse = {
   isTop: boolean;
   visible: VisibleScope;
   type: string;
-  publishTime?: string;
+  status?: string;
+  location?: PostLocation | null;
+  publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type LikeActionResponse = {
@@ -108,4 +125,27 @@ export type CounterResponse = {
     like: number;
     fav: number;
   };
+  liked?: boolean;
+  faved?: boolean;
+};
+
+export type PostCommentAuthor = {
+  userId: string;
+  nickname?: string | null;
+  avatar?: string | null;
+};
+
+export type PostComment = {
+  commentId: string;
+  postId: string;
+  content: string;
+  author: PostCommentAuthor;
+  createdAt?: string | null;
+};
+
+export type PostCommentPage = {
+  items: PostComment[];
+  page: number;
+  size: number;
+  hasMore: boolean;
 };

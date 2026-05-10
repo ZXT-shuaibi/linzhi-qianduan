@@ -15,8 +15,8 @@ type TradeActivityApi = {
   title: string;
   description?: string | null;
   cover?: string | null;
-  originalPrice?: number | null;
-  seckillPrice?: number | null;
+  originalPrice?: string | number | null;
+  seckillPrice?: string | number | null;
   totalStock?: number | null;
   availableStock?: number | null;
   perUserLimit?: number | null;
@@ -32,7 +32,7 @@ type TradeOrderApi = {
   activityId: string;
   activityTitle: string;
   activityCover?: string | null;
-  amount?: number | null;
+  amount?: string | number | null;
   quantity?: number | null;
   status: string;
   payChannel?: string | null;
@@ -48,8 +48,8 @@ const mapActivity = (item: TradeActivityApi): TradeActivity => ({
   title: item.title,
   description: item.description ?? null,
   cover: item.cover ?? null,
-  originalPrice: item.originalPrice ?? 0,
-  seckillPrice: item.seckillPrice ?? 0,
+  originalPrice: String(item.originalPrice ?? "0.00"),
+  seckillPrice: String(item.seckillPrice ?? "0.00"),
   totalStock: item.totalStock ?? 0,
   availableStock: item.availableStock ?? 0,
   perUserLimit: item.perUserLimit ?? 1,
@@ -65,7 +65,7 @@ const mapOrder = (item: TradeOrderApi): TradeOrder => ({
   activityId: item.activityId,
   activityTitle: item.activityTitle,
   activityCover: item.activityCover ?? null,
-  amount: item.amount ?? 0,
+  amount: String(item.amount ?? "0.00"),
   quantity: item.quantity ?? 0,
   status: item.status,
   payChannel: item.payChannel ?? null,

@@ -7,14 +7,8 @@ import AuthStatus from "@/features/auth/AuthStatus";
 import { useAuth } from "@/context/AuthContext";
 import { tradeService } from "@/services/tradeService";
 import type { TradeOrder } from "@/types/trade";
+import { formatMoney } from "@/utils/money";
 import styles from "./LearningPage.module.css";
-
-const moneyFormatter = new Intl.NumberFormat("zh-CN", {
-  style: "currency",
-  currency: "CNY"
-});
-
-const formatMoney = (value: number) => moneyFormatter.format(value);
 
 const formatDateTime = (value?: string | null) => {
   if (!value) {

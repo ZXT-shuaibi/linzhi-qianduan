@@ -35,7 +35,6 @@ export type CourseCardProps = {
   summary: string;
   tags: string[];
   authorTags?: string[];
-  isFree?: boolean;
   isTop?: boolean;
   teacher: {
     name: string;
@@ -47,7 +46,6 @@ export type CourseCardProps = {
     views: number;
   };
   coverImage?: string;
-  layout?: "vertical" | "horizontal";
   showPlayBadge?: boolean;
   footerExtra?: ReactNode;
   to?: string;

@@ -3,35 +3,64 @@ import styles from "./RelationCounters.module.css";
 import { relationService } from "@/services/relationService";
 import { useAuth } from "@/context/AuthContext";
 import RelationListModal from "./RelationListModal";
+import type { SocialCounters } from "@/types/profile";
 
 type RelationCountersProps = {
-  userId?: number;
+  userId?: string;
+  initialCounts?: SocialCounters | null;
+  refreshKey?: number;
 };
 
-const RelationCounters = ({ userId }: RelationCountersProps) => {
+type CounterState = {
+  followings: number;
+  followers: number;
+  posts: number;
+  likedPosts: number;
+  favedPosts: number;
+};
+
+const normalizeCounts = (counts?: Partial<CounterState> | null): CounterState | null => {
+  if (!counts) return null;
+  return {
+    followings: counts.followings ?? 0,
+    followers: counts.followers ?? 0,
+    posts: counts.posts ?? 0,
+    likedPosts: counts.likedPosts ?? 0,
+    favedPosts: counts.favedPosts ?? 0
+  };
+};
+
+const RelationCounters = ({ userId, initialCounts, refreshKey = 0 }: RelationCountersProps) => {
   const { tokens } = useAuth();
-  const [counts, setCounts] = useState<{
-    followings: number;
-    followers: number;
-    posts: number;
-    likedPosts: number;
-    favedPosts: number;
-  } | null>(null);
+  const [counts, setCounts] = useState<CounterState | null>(() => normalizeCounts(initialCounts));
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"following" | "followers">("following");
 
   useEffect(() => {
+    const nextCounts = normalizeCounts(initialCounts);
+    if (nextCounts) {
+      setCounts(nextCounts);
+    }
+  }, [
+    initialCounts?.followings,
+    initialCounts?.followers,
+    initialCounts?.posts,
+    initialCounts?.likedPosts,
+    initialCounts?.favedPosts
+  ]);
+
+  useEffect(() => {
     const run = async () => {
-      if (!userId || !tokens?.accessToken) return;
+      if (!userId) return;
       try {
-        const next = await relationService.counters(userId, tokens.accessToken);
+        const next = await relationService.counters(userId, tokens?.accessToken);
         setCounts(next);
       } catch {
         // 计数拉取失败时不打断页面展示。
       }
     };
     void run();
-  }, [userId, tokens?.accessToken]);
+  }, [userId, tokens?.accessToken, refreshKey]);
 
   if (!userId) return null;
 

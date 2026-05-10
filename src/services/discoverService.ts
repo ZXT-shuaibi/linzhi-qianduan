@@ -1,5 +1,5 @@
 import { apiFetch } from "./apiClient";
-import type { DiscoverItem, DiscoverQuery, DiscoverResponse } from "@/types/discover";
+import type { DiscoverItem, DiscoverQuery, DiscoverResponse, ReverseGeoResult } from "@/types/discover";
 
 type DiscoverItemApi = {
   id: string;
@@ -39,7 +39,7 @@ const mapDiscoverItem = (item: DiscoverItemApi): DiscoverItem => ({
   coverUrl: item.coverUrl ?? null,
   address: item.address ?? null,
   tags: item.tags ?? [],
-  authorId: item.authorId ? Number(item.authorId) : undefined,
+  authorId: item.authorId ?? undefined,
   authorName: item.authorName ?? "社区用户",
   authorAvatar: item.authorAvatar ?? null,
   lat: item.lat ?? null,
@@ -72,12 +72,28 @@ export const discoverService = {
     if (tag) {
       usp.set("tag", tag);
     }
-    const response = await apiFetch<DiscoverApiResponse>(`${DISCOVER_PREFIX}/nearby?${usp.toString()}`);
+    const response = await apiFetch<DiscoverApiResponse>(`${DISCOVER_PREFIX}/nearby?${usp.toString()}`, {
+      authMode: "none"
+    });
+    const total = response.total ?? 0;
+    const currentPage = response.page ?? page;
+    const pageSize = response.size ?? size;
     return {
       items: (response.items ?? []).map(mapDiscoverItem),
-      total: response.total ?? 0,
-      page: response.page ?? page,
-      size: response.size ?? size
+      total,
+      page: currentPage,
+      size: pageSize,
+      hasMore: currentPage * pageSize < total
     } satisfies DiscoverResponse;
+  },
+
+  reverseGeocode: async (lat: number, lng: number) => {
+    const usp = new URLSearchParams({
+      lat: String(lat),
+      lng: String(lng)
+    });
+    return apiFetch<ReverseGeoResult | null>(`${DISCOVER_PREFIX}/map/reverse-geocode?${usp.toString()}`, {
+      authMode: "none"
+    });
   }
 };

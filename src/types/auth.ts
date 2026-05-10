@@ -9,16 +9,16 @@ export type SendCodeRequest = {
 
 export type SendCodeResponse = {
   phone?: string;
-  identifier: string;
   scene: VerificationScene;
-  code: string;
+  code?: string | null;
   expireSeconds: number;
+  resendAfterSeconds?: number;
 };
 
 export type RegisterRequest = {
   phone: string;
-  account: string;
   password: string;
+  confirmPassword: string;
   nickname: string;
   smsCode: string;
 };
@@ -26,7 +26,7 @@ export type RegisterRequest = {
 export type RegisterResponse = {
   userId: string;
   phone: string;
-  account: string;
+  account?: string;
   nextAction: string;
   status: string;
 };
@@ -41,10 +41,8 @@ export type LoginRequest = {
 export type AuthTokens = {
   accessToken: string;
   accessExpiresAt?: string;
-  accessTokenExpiresAt?: string;
   refreshToken: string;
   refreshExpiresAt?: string;
-  refreshTokenExpiresAt?: string;
   tokenType?: string;
 };
 
@@ -55,16 +53,38 @@ export type LoginResponse = {
 
 export type RefreshResponse = AuthTokens;
 
+export type AuthUserResponse = {
+  userId: string;
+  phone?: string | null;
+  account?: string | null;
+  nickname: string;
+  role?: string | null;
+};
+
+export type PasswordResetRequest = {
+  phone: string;
+  smsCode: string;
+  newPassword: string;
+};
+
+export type ActionResult = {
+  resourceId?: string;
+  status?: string;
+  message?: string;
+};
+
 export type LogoutRequest = {
   refreshToken: string;
   logoutScope?: "current_device" | "all_devices";
 };
 
 export type AuthenticatedUser = {
-  id: number;
+  id: string;
   userId: string;
+  role?: string;
   phone?: string | null;
   account?: string | null;
+  email?: string | null;
   nickname: string;
   avatar?: string | null;
   bio?: string | null;

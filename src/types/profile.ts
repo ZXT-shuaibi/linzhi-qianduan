@@ -1,4 +1,5 @@
 export type Gender = "male" | "female" | "other" | "unknown";
+export type ProfileClearField = "bio" | "birthday" | "school";
 
 export type SocialCounters = {
   userId?: string;
@@ -16,13 +17,14 @@ export type RelationStatus = {
 };
 
 export type ProfileResponse = {
-  id: number;
+  id: string;
   userId: string;
   nickname: string;
   avatar?: string | null;
   bio?: string | null;
   account?: string | null;
   phone?: string | null;
+  email?: string | null;
   gender?: Gender;
   birthday?: string | null;
   school?: string | null;
@@ -31,6 +33,7 @@ export type ProfileResponse = {
   tagJson?: string;
   socialCounters?: SocialCounters;
   relationStatus?: RelationStatus;
+  followedAt?: string | null;
   self?: boolean;
 };
 
@@ -42,6 +45,7 @@ export type ProfileUpdateRequest = {
   school?: string;
   tags?: string[];
   tagJson?: string;
+  clearFields?: ProfileClearField[];
 };
 
 export type ProfileListResponse = {
@@ -49,7 +53,7 @@ export type ProfileListResponse = {
   page?: {
     page: number;
     size: number;
-    hasMore?: boolean;
+    hasNext?: boolean;
     total?: number;
   };
 };

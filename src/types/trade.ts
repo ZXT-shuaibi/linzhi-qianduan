@@ -3,8 +3,8 @@ export type TradeActivity = {
   title: string;
   description?: string | null;
   cover?: string | null;
-  originalPrice: number;
-  seckillPrice: number;
+  originalPrice: string;
+  seckillPrice: string;
   totalStock: number;
   availableStock: number;
   perUserLimit: number;
@@ -35,7 +35,7 @@ export type TradeOrder = {
   activityId: string;
   activityTitle: string;
   activityCover?: string | null;
-  amount: number;
+  amount: string;
   quantity: number;
   status: "PENDING_PAYMENT" | "PAID" | "CLOSED" | string;
   payChannel?: string | null;

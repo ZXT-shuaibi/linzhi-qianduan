@@ -3,11 +3,15 @@ import { Link } from "react-router-dom";
 import CourseCard from "@/components/cards/CourseCard";
 import LikeFavBar from "@/components/common/LikeFavBar";
 import CommunityTopNav from "@/components/layout/CommunityTopNav";
+import { useAuth } from "@/context/AuthContext";
 import { discoverService } from "@/services/discoverService";
+import { knowpostService } from "@/services/knowpostService";
 import type { DiscoverEntityType, DiscoverItem } from "@/types/discover";
+import type { CounterResponse } from "@/types/knowpost";
 import styles from "./DiscoverPage.module.css";
 
 const DEFAULT_LOCATION = { lat: 31.2304, lng: 121.4737 };
+const DISCOVER_PAGE_SIZE = 30;
 
 const entityFilters: Array<{ value: DiscoverEntityType; label: string; hint: string }> = [
   { value: "mixed", label: "全部", hint: "帖子与商家" },
@@ -32,6 +36,7 @@ const formatTime = (value?: string | null) => {
 };
 
 const DiscoverPage = () => {
+  const { tokens } = useAuth();
   const [entityType, setEntityType] = useState<DiscoverEntityType>("mixed");
   const [radius, setRadius] = useState(3000);
   const [items, setItems] = useState<DiscoverItem[]>([]);
@@ -41,8 +46,11 @@ const DiscoverPage = () => {
   const [locationLabel, setLocationLabel] = useState("上海社区");
   const [locationText, setLocationText] = useState("使用上海默认坐标，展示 3km 内的真实发现数据");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const loadNearby = useCallback(async (coords = location) => {
+  const loadNearby = useCallback(async (coords = location, nextPage = 1, append = false) => {
     setLoading(true);
     setError(null);
     try {
@@ -51,27 +59,67 @@ const DiscoverPage = () => {
         lng: coords.lng,
         radius,
         entityType,
-        size: 30,
+        page: nextPage,
+        size: DISCOVER_PAGE_SIZE,
         tag: activeTag ?? undefined
       });
-      setItems(response.items ?? []);
+      let nextItems = response.items ?? [];
+      if (tokens?.accessToken && nextItems.length) {
+        const postIds = nextItems.filter((item) => item.entityType === "post").map((item) => item.id);
+        const postCounters = postIds.length
+          ? await knowpostService.countersBatch("post", postIds, tokens.accessToken)
+          : {} as Record<string, CounterResponse>;
+        nextItems = nextItems.map((item) => {
+          const counters = item.entityType === "post" ? postCounters[item.id] : undefined;
+          return counters
+            ? {
+                ...item,
+                likeCount: counters.counts.like,
+                favoriteCount: counters.counts.fav,
+                liked: counters.liked,
+                faved: counters.faved
+              }
+            : item;
+        });
+      }
+      setItems((current) => {
+        if (!append) return nextItems;
+        const seen = new Set(current.map((item) => `${item.entityType}:${item.id}`));
+        return [
+          ...current,
+          ...nextItems.filter((item) => !seen.has(`${item.entityType}:${item.id}`))
+        ];
+      });
+      setPage(response.page);
+      setTotal(response.total);
+      setHasMore(response.hasMore);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载附近内容失败");
-      setItems([]);
+      if (!append) {
+        setItems([]);
+        setPage(1);
+        setTotal(0);
+        setHasMore(false);
+      }
     } finally {
       setLoading(false);
     }
-  }, [activeTag, entityType, location, radius]);
+  }, [activeTag, entityType, location, radius, tokens?.accessToken]);
 
   useEffect(() => {
-    void loadNearby(location);
+    void loadNearby(location, 1, false);
   }, [loadNearby, location]);
+
+  const loadMore = () => {
+    if (loading || !hasMore) return;
+    void loadNearby(location, page + 1, true);
+  };
 
   const locateMe = () => {
     if (!navigator.geolocation) {
       setLocationLabel("上海社区");
       setLocationText("当前浏览器不支持定位，已继续使用上海默认坐标");
-      void loadNearby(DEFAULT_LOCATION);
+      void loadNearby(DEFAULT_LOCATION, 1, false);
       return;
     }
 
@@ -117,22 +165,25 @@ const DiscoverPage = () => {
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <span>Location Based Discovery</span>
-          <h1>把附近的人、内容和小店放在一张温暖地图上。</h1>
-          <p>
-            发现页直接调用 `linli` 的 `/api/v1/discover/nearby`，保留半径、类型和定位能力。
-            没有后端数据时展示真实空态，不用假卡片撑场面。
+          <span className={styles.heroKicker}><span aria-hidden="true">📍</span> LOCATION BASED DISCOVERY</span>
+          <h1 className={styles.discoveryTitle}>
+            重新<span>发现</span><br />
+            让有趣的灵魂与宝藏小店<br />
+            在地图上<em>相遇</em>
+          </h1>
+          <p className={styles.discoveryIntro}>
+            基于 LBS 实时索引附近内容，把帖子、互助与小店整理成一张更有温度的社区地图。
           </p>
           <div className={styles.heroActions}>
-            <button type="button" onClick={locateMe}>使用我的位置</button>
-            <Link to="/create">发布附近动态</Link>
+            <button type="button" onClick={locateMe}><span aria-hidden="true">📍</span>使用我的位置</button>
+            <Link to="/create"><span aria-hidden="true">🔔</span>发布附近动态</Link>
           </div>
         </div>
 
         <div className={styles.mapCard}>
           <div className={styles.mapHeader}>
             <span>附近索引</span>
-            <strong>{items.length} 条结果</strong>
+            <strong>{items.length}/{total || items.length} 条结果</strong>
           </div>
           <div className={styles.mapRadar}>
             {items.slice(0, 8).map((item, index) => (
@@ -235,6 +286,7 @@ const DiscoverPage = () => {
                       entityType="post"
                       compact
                       initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
+                      initialState={{ liked: item.liked, faved: item.faved }}
                     />
                   </div>
                 )}
@@ -244,6 +296,11 @@ const DiscoverPage = () => {
 
           {!loading && !postItems.length ? (
             <div className={styles.empty}>当前筛选范围内暂无附近帖子，可以扩大半径或发布第一条动态。</div>
+          ) : null}
+          {hasMore ? (
+            <button type="button" className={styles.loadMoreButton} onClick={loadMore} disabled={loading}>
+              {loading ? "加载中..." : "加载更多"}
+            </button>
           ) : null}
         </div>
 
@@ -297,12 +354,7 @@ const DiscoverPage = () => {
                     <small>{formatDistance(item.distance)} · {item.address || "地址未提供"}</small>
                     <div className={styles.merchantFooter}>
                       <span>{item.tags.slice(0, 2).map((tag) => `#${tag.replace(/^#/, "")}`).join(" ") || "附近商家"}</span>
-                      <LikeFavBar
-                        entityId={item.id}
-                        entityType="merchant"
-                        compact
-                        initialCounts={{ like: item.likeCount, fav: item.favoriteCount }}
-                      />
+                      <span>{item.likeCount} likes / {item.favoriteCount} saves</span>
                     </div>
                   </div>
                 </article>

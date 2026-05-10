@@ -7,11 +7,15 @@ import type {
   FavActionResponse,
   FeedResponse,
   LikeActionResponse,
+  PostComment,
+  PostCommentPage,
+  PostLocation,
   PresignRequest,
   PresignResponse,
   UpdateKnowPostRequest,
   VisibleScope
 } from "@/types/knowpost";
+import type { RelationStatus, SocialCounters } from "@/types/profile";
 
 const POSTS_PREFIX = "/api/v1/posts";
 const STORAGE_PREFIX = "/api/v1/storage";
@@ -28,11 +32,14 @@ type FeedItemApi = {
     userId?: string | null;
     nickname?: string | null;
     avatar?: string | null;
+    socialCounters?: SocialCounters;
+    relationStatus?: RelationStatus;
   };
   likeCount?: number | null;
   favoriteCount?: number | null;
   liked?: boolean | null;
   faved?: boolean | null;
+  visibility?: VisibleScope | null;
   distanceMeters?: number | null;
   hotScore?: number | null;
   isTop?: boolean | null;
@@ -41,11 +48,13 @@ type FeedItemApi = {
 
 type FeedApiResponse = {
   items?: FeedItemApi[];
-  page?: {
-    page: number;
-    size: number;
-    hasMore: boolean;
+  page?: number | {
+    page?: number;
+    size?: number;
+    hasNext?: boolean;
   };
+  size?: number;
+  hasMore?: boolean;
   cacheLayer?: string;
 };
 
@@ -60,6 +69,8 @@ type PostDetailApi = {
     userId?: string | null;
     nickname?: string | null;
     avatar?: string | null;
+    socialCounters?: SocialCounters;
+    relationStatus?: RelationStatus;
   };
   likeCount?: number | null;
   favoriteCount?: number | null;
@@ -68,11 +79,31 @@ type PostDetailApi = {
   isTop?: boolean | null;
   visibility?: VisibleScope | null;
   type?: string | null;
+  status?: string | null;
+  location?: PostLocation | null;
   publishedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
-const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) =>
-  ({
+const resolveFeedPage = (response: FeedApiResponse, fallbackPage: number) => {
+  if (typeof response.page === "number") return response.page;
+  if (response.page && typeof response.page === "object") return response.page.page ?? fallbackPage;
+  return fallbackPage;
+};
+
+const resolveFeedSize = (response: FeedApiResponse, fallbackSize: number) => {
+  if (response.page && typeof response.page === "object") return response.page.size ?? response.size ?? fallbackSize;
+  return response.size ?? fallbackSize;
+};
+
+const resolveFeedHasMore = (response: FeedApiResponse) => {
+  if (typeof response.hasMore === "boolean") return response.hasMore;
+  if (response.page && typeof response.page === "object") return response.page.hasNext ?? false;
+  return false;
+};
+
+const buildFeedResponse = (response: FeedApiResponse, page: number, size: number) => ({
     items: (response.items ?? []).map((item) =>
       mapFeedPreview({
         id: item.postId,
@@ -83,26 +114,30 @@ const buildFeedResponse = (response: FeedApiResponse, page: number, size: number
         authorAvatar: item.author?.avatar,
         authorNickname: item.author?.nickname,
         authorId: item.author?.userId,
+        authorSocialCounters: item.author?.socialCounters,
+        authorRelationStatus: item.author?.relationStatus,
         likeCount: item.likeCount,
         favoriteCount: item.favoriteCount,
         liked: item.liked,
         faved: item.faved,
+        visible: item.visibility,
         distanceMeters: item.distanceMeters,
         hotScore: item.hotScore,
         isTop: item.isTop,
         publishedAt: item.publishedAt
       })
     ),
-    page: response.page?.page ?? page,
-    size: response.page?.size ?? size,
-    hasMore: response.page?.hasMore ?? false,
+    page: resolveFeedPage(response, page),
+    size: resolveFeedSize(response, size),
+    hasMore: resolveFeedHasMore(response),
     cacheLayer: response.cacheLayer
   }) satisfies FeedResponse;
 
 export const knowpostService = {
   createDraft: async () => {
     const response = await apiFetch<{ postId: string; status?: string; createdAt?: string }>(`${POSTS_PREFIX}/drafts`, {
-      method: "POST"
+      method: "POST",
+      authMode: "required"
     });
     return {
       id: response.postId,
@@ -120,6 +155,7 @@ export const knowpostService = {
       expireAt?: string;
     }>(`${STORAGE_PREFIX}/presign`, {
       method: "POST",
+      authMode: "required",
       body: {
         scene: payload.scene,
         postId: payload.postId,
@@ -138,23 +174,25 @@ export const knowpostService = {
   },
 
   confirmContent: (id: string, payload: ConfirmContentRequest) =>
-    apiFetch<void>(`${POSTS_PREFIX}/${id}/content/confirm`, { method: "POST", body: payload }),
+    apiFetch<void>(`${POSTS_PREFIX}/${id}/content/confirm`, { method: "POST", body: payload, authMode: "required" }),
 
   update: (id: string, payload: UpdateKnowPostRequest) =>
     apiFetch<void>(`${POSTS_PREFIX}/${id}`, {
       method: "PATCH",
+      authMode: "required",
       body: {
         title: payload.title,
         summary: payload.summary ?? payload.description,
         tags: payload.tags,
         imageUrls: payload.imageUrls ?? payload.imgUrls,
         visibility: payload.visible,
-        isTop: payload.isTop
+        isTop: payload.isTop,
+        location: payload.location
       }
     }),
 
   publish: (id: string) =>
-    apiFetch<void>(`${POSTS_PREFIX}/${id}/publish`, { method: "POST" }),
+    apiFetch<void>(`${POSTS_PREFIX}/${id}/publish`, { method: "POST", authMode: "required" }),
 
   setTop: (id: string, isTop: boolean, accessToken: string) =>
     apiFetch<void>(`${POSTS_PREFIX}/${id}/top?isTop=${isTop}`, {
@@ -175,7 +213,9 @@ export const knowpostService = {
     }),
 
   feed: async (page = 1, size = 20) => {
-    const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`);
+    const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`, {
+      authMode: "optional"
+    });
     return buildFeedResponse(response, page, size);
   },
 
@@ -188,7 +228,9 @@ export const knowpostService = {
     if (typeof params?.lng === "number") usp.set("lng", String(params.lng));
     if (params?.geoHash) usp.set("geoHash", params.geoHash);
 
-    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`);
+    const response = await apiFetch<FeedApiResponse>(`/api/v1/feed/home?${usp.toString()}`, {
+      authMode: "optional"
+    });
     return buildFeedResponse(response, page, size);
   },
 
@@ -199,9 +241,18 @@ export const knowpostService = {
     return buildFeedResponse(response, page, size);
   },
 
+  userPosts: async (userId: string, page = 1, size = 20, accessToken?: string | null) => {
+    const response = await apiFetch<FeedApiResponse>(`/api/v1/profile/users/${userId}/posts?page=${page}&size=${size}`, {
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
+    });
+    return buildFeedResponse(response, page, size);
+  },
+
   detail: async (id: string, accessToken?: string) => {
     const response = await apiFetch<PostDetailApi>(`${POSTS_PREFIX}/${id}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
     });
     return mapPostDetail({
       id: response.postId,
@@ -213,6 +264,8 @@ export const knowpostService = {
       authorAvatar: response.author?.avatar,
       authorNickname: response.author?.nickname,
       authorId: response.author?.userId,
+      authorSocialCounters: response.author?.socialCounters,
+      authorRelationStatus: response.author?.relationStatus,
       likeCount: response.likeCount,
       favoriteCount: response.favoriteCount,
       liked: response.liked,
@@ -220,9 +273,26 @@ export const knowpostService = {
       isTop: response.isTop,
       visible: response.visibility,
       type: response.type,
-      publishedAt: response.publishedAt
+      status: response.status,
+      location: response.location,
+      publishedAt: response.publishedAt,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt
     });
   },
+
+  listComments: (id: string, page = 1, size = 20, accessToken?: string | null) =>
+    apiFetch<PostCommentPage>(`${POSTS_PREFIX}/${id}/comments?page=${page}&size=${size}`, {
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
+    }),
+
+  createComment: (id: string, content: string) =>
+    apiFetch<PostComment>(`${POSTS_PREFIX}/${id}/comments`, {
+      method: "POST",
+      authMode: "required",
+      body: { content }
+    }),
 
   suggestDescription: (content: string, accessToken: string) =>
     apiFetch<{ model: string; description: string }>(`${LLM_PREFIX}/posts/description`, {
@@ -232,45 +302,45 @@ export const knowpostService = {
     }),
 
   like: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
       method: "POST",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       liked: response.active ?? true
     } satisfies LikeActionResponse;
   },
 
   unlike: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/like`, {
       method: "DELETE",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       liked: response.active ?? false
     } satisfies LikeActionResponse;
   },
 
   fav: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
       method: "POST",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       faved: response.active ?? true
     } satisfies FavActionResponse;
   },
 
   unfav: async (entityId: string, accessToken: string, entityType = "post") => {
-    const response = await apiFetch<{ active?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
+    const response = await apiFetch<{ active?: boolean; changed?: boolean }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/favorite`, {
       method: "DELETE",
       accessToken
     });
     return {
-      changed: true,
+      changed: response.changed ?? false,
       faved: response.active ?? false
     } satisfies FavActionResponse;
   },
@@ -282,7 +352,8 @@ export const knowpostService = {
       viewerLiked?: boolean;
       viewerFavorited?: boolean;
     }>(`${INTERACTIONS_PREFIX}/${entityType}/${entityId}/summary`, {
-      accessToken
+      accessToken,
+      authMode: "optional"
     });
     return {
       entityType,
@@ -290,8 +361,47 @@ export const knowpostService = {
       counts: {
         like: response.likeCount ?? 0,
         fav: response.favoriteCount ?? 0
-      }
+      },
+      liked: response.viewerLiked,
+      faved: response.viewerFavorited
     } satisfies CounterResponse;
+  },
+
+  countersBatch: async (entityType: string, entityIds: string[], accessToken?: string | null) => {
+    if (!entityIds.length) {
+      return {} satisfies Record<string, CounterResponse>;
+    }
+
+    const usp = new URLSearchParams({
+      targetIds: entityIds.join(",")
+    });
+    const response = await apiFetch<Record<string, {
+      targetType?: string;
+      targetId?: string;
+      likeCount?: number;
+      favoriteCount?: number;
+      viewerLiked?: boolean;
+      viewerFavorited?: boolean;
+    }>>(`${INTERACTIONS_PREFIX}/${entityType}/summary-batch?${usp.toString()}`, {
+      accessToken: accessToken ?? undefined,
+      authMode: "optional"
+    });
+
+    return Object.fromEntries(
+      Object.entries(response ?? {}).map(([id, item]) => [
+        id,
+        {
+          entityType: item.targetType ?? entityType,
+          entityId: item.targetId ?? id,
+          counts: {
+            like: item.likeCount ?? 0,
+            fav: item.favoriteCount ?? 0
+          },
+          liked: item.viewerLiked,
+          faved: item.viewerFavorited
+        } satisfies CounterResponse
+      ])
+    );
   }
 };
 

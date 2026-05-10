@@ -20,19 +20,22 @@ export const authService = {
   sendCode: (payload: SendCodeRequest) =>
     apiFetch<SendCodeResponse>(`${AUTH_PREFIX}/send-code`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
   register: (payload: RegisterRequest) =>
     apiFetch<RegisterResponse>(`${AUTH_PREFIX}/register`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
   login: (payload: LoginRequest) =>
     apiFetch<LoginResponse>(`${AUTH_PREFIX}/login`, {
       method: "POST",
-      body: payload
+      body: payload,
+      authMode: "none"
     }),
 
   logout: (payload: LogoutRequest, accessToken: string) =>

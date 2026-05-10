@@ -95,7 +95,7 @@ const LoginPage = () => {
       const payload: LoginRequest = mode === "code"
         ? {
           identifier: trimmedIdentifier,
-          smsCode: smsCode.trim(),
+          captchaCode: smsCode.trim(),
           channel: "H5"
         }
         : {

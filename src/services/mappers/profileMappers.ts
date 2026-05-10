@@ -39,7 +39,6 @@ export const mapProfileResponse = (profile: ProfileApiPayload): ProfileResponse 
     tagJson: JSON.stringify(tags),
     socialCounters: profile.socialCounters,
     relationStatus: profile.relationStatus,
-    followedAt: profile.followedAt ?? null,
     self: profile.self ?? false
   };
 };

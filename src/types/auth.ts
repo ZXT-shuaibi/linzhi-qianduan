@@ -36,7 +36,6 @@ export type LoginRequest = {
   identifier: string;
   password?: string;
   channel?: string;
-  smsCode?: string;
   captchaCode?: string;
 };
 

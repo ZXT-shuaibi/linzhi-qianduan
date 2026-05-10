@@ -202,7 +202,7 @@ export const knowpostService = {
     }),
 
   feed: async (page = 1, size = 20) => {
-    const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`);
+    const response = await apiFetch<FeedApiResponse>(`${POSTS_PREFIX}/feed?page=${page}&size=${size}`, { authMode: "optional" });
     return buildFeedResponse(response, page, size);
   },
 
@@ -236,7 +236,8 @@ export const knowpostService = {
 
   detail: async (id: string, accessToken?: string) => {
     const response = await apiFetch<PostDetailApi>(`${POSTS_PREFIX}/${id}`, {
-      accessToken: accessToken ?? null
+      accessToken: accessToken ?? null,
+      authMode: "optional"
     });
     return mapPostDetail({
       id: response.postId,
@@ -334,7 +335,7 @@ export const knowpostService = {
   countersBatch: async (entityType: string, entityIds: string[], accessToken?: string | null) => {
     const ids = entityIds.join(",");
     const response = await apiFetch<Record<string, { likeCount?: number; favoriteCount?: number; viewerLiked?: boolean; viewerFavorited?: boolean }>>(
-      `${INTERACTIONS_PREFIX}/targets/${entityType}/summary-batch?targetIds=${ids}`,
+      `${INTERACTIONS_PREFIX}/${entityType}/summary-batch?targetIds=${ids}`,
       { accessToken: accessToken ?? null, authMode: "optional" }
     );
     return Object.entries(response).map(([targetId, summary]) => ({
@@ -359,7 +360,7 @@ export const knowpostService = {
         createdAt: string;
       }>;
       page?: { page: number; size: number; total?: number };
-    }>(`${POSTS_PREFIX}/${postId}/comments?page=${page}&size=${size}`);
+    }>(`${POSTS_PREFIX}/${postId}/comments?page=${page}&size=${size}`, { authMode: "none" });
   },
 
   createComment: async (postId: string, content: string, accessToken: string) => {

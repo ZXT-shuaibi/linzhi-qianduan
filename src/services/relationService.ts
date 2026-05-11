@@ -13,7 +13,8 @@ type FollowListResponse = Omit<ProfileListResponse, "items"> & {
 
 const fetchProfileList = async (path: string, accessToken?: string) => {
   const response = await apiFetch<FollowListResponse>(path, {
-    accessToken: accessToken ?? null
+    accessToken: accessToken ?? null,
+    authMode: "optional"
   });
   return {
     items: (response.items ?? []).map(mapProfileResponse),

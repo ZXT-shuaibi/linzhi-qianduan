@@ -203,7 +203,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = useCallback(async () => {
     if (tokens) {
       try {
-        await authService.logout({ refreshToken: tokens.refreshToken }, tokens.accessToken);
+        await authService.logout({ refreshToken: tokens.refreshToken });
       } catch (error) {
         console.warn("注销请求失败，继续清理本地状态", error);
       }

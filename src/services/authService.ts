@@ -38,11 +38,12 @@ export const authService = {
       authMode: "none"
     }),
 
-  logout: (payload: LogoutRequest, accessToken: string) =>
+  logout: (payload: LogoutRequest) =>
     apiFetch<void>(`${AUTH_PREFIX}/logout`, {
       method: "POST",
       body: payload,
-      accessToken
+      accessToken: null,
+      authMode: "none"
     }),
 
   fetchCurrentUser: async (accessToken: string) => {

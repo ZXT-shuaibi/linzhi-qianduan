@@ -26,18 +26,22 @@ export const relationService = {
   follow: async (toUserId: string, accessToken: string) => {
     const result = await apiFetch<{
       action?: string;
-      active?: boolean;
       following?: boolean;
       followeeId?: string;
+      followerCount?: number;
+      followCount?: number;
     }>(`${FOLLOWS_PREFIX}/${toUserId}`, {
       method: "POST",
-      accessToken
+      accessToken,
+      authMode: "required"
     });
 
     return {
       following: result.following ?? true,
       action: result.action ?? "follow",
-      targetUserId: result.followeeId
+      targetUserId: result.followeeId,
+      followerCount: result.followerCount ?? 0,
+      followCount: result.followCount ?? 0
     } satisfies FollowActionResponse;
   },
 
@@ -46,15 +50,20 @@ export const relationService = {
       action?: string;
       following?: boolean;
       followeeId?: string;
+      followerCount?: number;
+      followCount?: number;
     }>(`${FOLLOWS_PREFIX}/${toUserId}`, {
       method: "DELETE",
-      accessToken
+      accessToken,
+      authMode: "required"
     });
 
     return {
       following: result.following ?? false,
       action: result.action ?? "unfollow",
-      targetUserId: result.followeeId
+      targetUserId: result.followeeId,
+      followerCount: result.followerCount ?? 0,
+      followCount: result.followCount ?? 0
     } satisfies FollowActionResponse;
   },
 

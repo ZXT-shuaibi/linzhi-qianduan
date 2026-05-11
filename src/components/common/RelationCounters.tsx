@@ -53,7 +53,7 @@ const RelationCounters = ({ userId, initialCounts, refreshKey = 0 }: RelationCou
     const run = async () => {
       if (!userId) return;
       try {
-        const next = await relationService.counters(userId, tokens?.accessToken);
+        const next = await relationService.counters(userId);
         setCounts(next);
       } catch {
         // 计数拉取失败时不打断页面展示。

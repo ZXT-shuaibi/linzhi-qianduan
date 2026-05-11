@@ -9,14 +9,14 @@ type Mode = "following" | "followers";
 type RelationListModalProps = {
   open: boolean;
   onClose: () => void;
-  userId: number;
+  userId: string;
   mode: Mode;
 };
 
 const initialLimit = 20;
 
-const initialChar = (name?: string, id?: number) =>
-  (name?.trim().charAt(0).toUpperCase() || String(id ?? "").trim().charAt(0).toUpperCase() || "?");
+const initialChar = (name?: string, id?: string) =>
+  (name?.trim().charAt(0).toUpperCase() || (id ?? "").trim().charAt(0).toUpperCase() || "?");
 
 const RelationListModal = ({ open, onClose, userId, mode }: RelationListModalProps) => {
   const title = useMemo(() => (mode === "following" ? "关注列表" : "粉丝列表"), [mode]);

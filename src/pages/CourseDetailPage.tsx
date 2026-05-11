@@ -138,10 +138,10 @@ const CourseDetailPage = () => {
     setCommentLoading(true);
     setCommentError(null);
     try {
-      const response = await knowpostService.listComments(id, nextPage, COMMENT_PAGE_SIZE, tokens?.accessToken);
+      const response = await knowpostService.listComments(id, nextPage, COMMENT_PAGE_SIZE);
       setComments((current) => append ? [...current, ...(response.items ?? [])] : response.items ?? []);
-      setCommentPage(response.page ?? nextPage);
-      setCommentHasMore(Boolean(response.hasMore));
+      setCommentPage(response.page?.page ?? nextPage);
+      setCommentHasMore(Boolean(response.page?.hasMore));
     } catch (err) {
       setCommentError(err instanceof Error ? err.message : "评论加载失败");
       if (!append) {
@@ -253,7 +253,7 @@ const CourseDetailPage = () => {
     setCommentSubmitting(true);
     setCommentError(null);
     try {
-      const created = await knowpostService.createComment(id, commentDraft);
+      const created = await knowpostService.createComment(id, commentDraft, tokens!.accessToken);
       setComments((current) => [created, ...current]);
       setCommentDraft("");
     } catch (err) {

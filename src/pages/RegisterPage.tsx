@@ -14,6 +14,7 @@ const RegisterPage = () => {
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState("");
   const [smsCode, setSmsCode] = useState("");
+  const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -98,6 +99,7 @@ const RegisterPage = () => {
       const payload: RegisterRequest = {
         phone: phone.trim(),
         smsCode: smsCode.trim(),
+        nickname: nickname.trim() || "邻里用户",
         password,
         confirmPassword
       };
@@ -162,6 +164,16 @@ const RegisterPage = () => {
             </>
           ) : (
             <>
+              <div className={styles.field}>
+                <label className={styles.label}>取一个昵称</label>
+                <input
+                  className={styles.input}
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                  placeholder="你的名字，朋友们都这样称呼你"
+                  autoComplete="nickname"
+                />
+              </div>
               <div className={styles.field}>
                 <label className={styles.label}>设置访问口令</label>
                 <input

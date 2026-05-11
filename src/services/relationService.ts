@@ -58,9 +58,10 @@ export const relationService = {
     } satisfies FollowActionResponse;
   },
 
-  status: (toUserId: string, accessToken: string) =>
+  status: (toUserId: string, accessToken?: string) =>
     apiFetch<RelationStatusResponse>(`${FOLLOWS_PREFIX}/status?targetUserId=${toUserId}`, {
-      accessToken
+      accessToken: accessToken ?? null,
+      authMode: "optional"
     }),
 
   followingPage: (userId: string, size = 20, page = 1, accessToken?: string) =>

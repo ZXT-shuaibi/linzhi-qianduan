@@ -141,7 +141,7 @@ const CourseDetailPage = () => {
       const response = await knowpostService.listComments(id, nextPage, COMMENT_PAGE_SIZE);
       setComments((current) => append ? [...current, ...(response.items ?? [])] : response.items ?? []);
       setCommentPage(response.page?.page ?? nextPage);
-      setCommentHasMore(Boolean(response.page?.hasMore));
+      setCommentHasMore((response.items?.length ?? 0) >= COMMENT_PAGE_SIZE);
     } catch (err) {
       setCommentError(err instanceof Error ? err.message : "评论加载失败");
       if (!append) {
@@ -447,19 +447,19 @@ const CourseDetailPage = () => {
                 {comments.length ? (
                   <div className={styles.commentList}>
                     {comments.map((comment) => (
-                      <article key={comment.commentId} className={styles.commentItem}>
-                        {comment.author?.avatar ? (
+                      <article key={comment.id} className={styles.commentItem}>
+                        {comment.authorAvatar ? (
                           <img
                             className={styles.commentAvatar}
-                            src={comment.author.avatar}
-                            alt={comment.author.nickname ?? "评论用户"}
+                            src={comment.authorAvatar}
+                            alt={comment.authorNickname ?? "评论用户"}
                           />
                         ) : (
-                          <span className={styles.commentAvatar}>{getInitial(comment.author?.nickname)}</span>
+                          <span className={styles.commentAvatar}>{getInitial(comment.authorNickname)}</span>
                         )}
                         <div className={styles.commentBody}>
                           <div className={styles.commentMeta}>
-                            <strong>{comment.author?.nickname || "邻里用户"}</strong>
+                            <strong>{comment.authorNickname || "邻里用户"}</strong>
                             <time>{formatCommentTime(comment.createdAt)}</time>
                           </div>
                           <p className={styles.commentContent}>{comment.content}</p>

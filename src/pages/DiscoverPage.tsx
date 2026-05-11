@@ -66,18 +66,22 @@ const DiscoverPage = () => {
       let nextItems = response.items ?? [];
       if (tokens?.accessToken && nextItems.length) {
         const postIds = nextItems.filter((item) => item.entityType === "post").map((item) => item.id);
-        const postCounters = postIds.length
+        const batchResult = postIds.length
           ? await knowpostService.countersBatch("post", postIds, tokens.accessToken)
-          : {} as Record<string, CounterResponse>;
+          : [];
+        const postCounters: Record<string, typeof batchResult[number]> = {};
+        for (const c of batchResult) {
+          postCounters[c.targetId] = c;
+        }
         nextItems = nextItems.map((item) => {
           const counters = item.entityType === "post" ? postCounters[item.id] : undefined;
           return counters
             ? {
                 ...item,
-                likeCount: counters.counts.like,
-                favoriteCount: counters.counts.fav,
-                liked: counters.liked,
-                faved: counters.faved
+                likeCount: counters.likeCount,
+                favoriteCount: counters.favoriteCount,
+                liked: counters.viewerLiked,
+                faved: counters.viewerFavorited
               }
             : item;
         });

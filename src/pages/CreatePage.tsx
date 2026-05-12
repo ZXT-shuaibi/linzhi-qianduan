@@ -196,7 +196,7 @@ const CreatePage = () => {
     setAiSummaryLoading(true);
     setError(null);
     try {
-      const response = await knowpostService.suggestDescription(content, tokens.accessToken);
+      const response = await knowpostService.suggestDescription(content, tokens?.accessToken);
       setSummary((response.description ?? "").slice(0, 50));
       setAiSummaryEnabled(true);
       setMessage("AI 摘要已生成");

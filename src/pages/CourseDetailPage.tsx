@@ -194,10 +194,6 @@ const CourseDetailPage = () => {
 
   const startRag = async () => {
     if (!detail || !ragQuestion.trim()) return;
-    if (!tokens?.accessToken) {
-      setRagError("请登录后使用问答");
-      return;
-    }
 
     abortRef.current?.abort();
     const controller = new AbortController();

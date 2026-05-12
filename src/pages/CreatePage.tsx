@@ -188,10 +188,6 @@ const CreatePage = () => {
       setAiSummaryEnabled(false);
       return;
     }
-    if (!tokens?.accessToken) {
-      setError("登录后才能使用 AI 摘要");
-      return;
-    }
     if (!content.trim()) {
       setError("请先填写正文，再生成摘要");
       return;

@@ -9,6 +9,14 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { authService } from "@/services/authService";
+import {
+  clearAuthSession,
+  loadAuthTokens,
+  persistAuthTokens,
+  TOKEN_CHANGED_EVENT,
+  USER_STORAGE_KEY,
+  type StoredAuthTokens
+} from "@/services/authSession";
 import type {
   AuthenticatedUser,
   LoginRequest,
@@ -17,11 +25,7 @@ import type {
   RefreshResponse
 } from "@/types/auth";
 
-type AuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-};
+type AuthTokens = StoredAuthTokens;
 
 type AuthContextValue = {
   user: AuthenticatedUser | null;
@@ -35,39 +39,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const STORAGE_KEY = "linzhi_auth_tokens";
-const USER_STORAGE_KEY = "linzhi_current_user";
-const TOKEN_CHANGED_EVENT = "linzhi_auth_tokens_changed";
-
-const readStoredTokens = (): AuthTokens | null => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as AuthTokens;
-    if (!parsed.accessToken || !parsed.refreshToken || !parsed.expiresAt) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const persistTokens = (tokens: AuthTokens | null) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (!tokens) {
-    localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
-};
 
 const readStoredUser = (): AuthenticatedUser | null => {
   if (typeof window === "undefined") return null;
@@ -124,7 +95,7 @@ const parseInstantToMillis = (value: string): number => {
 const toTokens = (token: LoginResponse["tokens"] | RefreshResponse): AuthTokens => ({
   accessToken: token.accessToken,
   refreshToken: token.refreshToken,
-  expiresAt: parseInstantToMillis(token.accessExpiresAt ?? "")
+  expiresAt: parseInstantToMillis(token.accessExpiresAt ?? token.accessTokenExpiresAt ?? "")
 });
 
 type AuthProviderProps = {
@@ -132,9 +103,9 @@ type AuthProviderProps = {
 };
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [tokens, setTokens] = useState<AuthTokens | null>(() => readStoredTokens());
+  const [tokens, setTokens] = useState<AuthTokens | null>(() => loadAuthTokens());
   const [user, setUser] = useState<AuthenticatedUser | null>(() => readStoredUser());
-  const [isLoading, setIsLoading] = useState<boolean>(!!readStoredTokens());
+  const [isLoading, setIsLoading] = useState<boolean>(!!loadAuthTokens());
   const fetchingRef = useRef<Promise<AuthenticatedUser | null> | null>(null);
 
   const fetchUser = useCallback(async (accessToken: string) => {
@@ -154,32 +125,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error("获取当前用户信息失败", error);
       setUser(null);
       setTokens(null);
-      persistTokens(null);
+      clearAuthSession();
       persistUser(null);
       return null;
     }
   }, []);
 
-  useEffect(() => {
-    if (!tokens) {
-      setIsLoading(false);
-      return;
-    }
-
-    if (!fetchingRef.current) {
-      const task = fetchUser(tokens.accessToken).finally(() => {
-        fetchingRef.current = null;
-        setIsLoading(false);
-      });
-      fetchingRef.current = task;
-    }
-  }, [tokens, fetchUser]);
-
   const login = useCallback(async (payload: LoginRequest) => {
     const response = await authService.login(payload);
     const nextTokens = toTokens(response.tokens);
     setTokens(nextTokens);
-    persistTokens(nextTokens);
+    persistAuthTokens(nextTokens);
     await fetchUser(nextTokens.accessToken);
   }, [fetchUser]);
 
@@ -192,7 +148,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
     const nextTokens = toTokens(loginResponse.tokens);
     setTokens(nextTokens);
-    persistTokens(nextTokens);
+    persistAuthTokens(nextTokens);
     const currentUser = await fetchUser(nextTokens.accessToken);
     if (!currentUser) {
       throw new Error("Failed to fetch current user");
@@ -211,7 +167,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     setTokens(null);
     setUser(null);
-    persistTokens(null);
+    clearAuthSession();
     persistUser(null);
   }, [tokens]);
 
@@ -221,22 +177,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
-      if (Date.now() < tokens.expiresAt - 5_000) {
+      if (tokens.accessToken && Date.now() < tokens.expiresAt - 5_000) {
         return;
       }
       const result = await authService.refresh(tokens.refreshToken);
       const nextTokens = toTokens(result);
       setTokens(nextTokens);
-      persistTokens(nextTokens);
+      persistAuthTokens(nextTokens);
       await fetchUser(nextTokens.accessToken);
     } catch (error) {
       console.error("刷新登录状态失败", error);
-      await logout();
+      setTokens(null);
+      setUser(null);
+      clearAuthSession();
+      persistUser(null);
     }
-  }, [tokens, fetchUser, logout]);
+  }, [tokens, fetchUser]);
+
+  useEffect(() => {
+    if (!tokens) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!tokens.accessToken) {
+      void refresh();
+      return;
+    }
+
+    if (!fetchingRef.current) {
+      const task = fetchUser(tokens.accessToken).finally(() => {
+        fetchingRef.current = null;
+        setIsLoading(false);
+      });
+      fetchingRef.current = task;
+    }
+  }, [tokens, fetchUser, refresh]);
 
   const reloadUser = useCallback(async () => {
-    if (!tokens) return;
+    if (!tokens?.accessToken) return;
     await fetchUser(tokens.accessToken);
   }, [tokens, fetchUser]);
 
@@ -253,7 +232,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const syncTokensFromStorage = () => {
-      const nextTokens = readStoredTokens();
+      const nextTokens = loadAuthTokens();
       setTokens(nextTokens);
       if (!nextTokens) {
         setUser(null);

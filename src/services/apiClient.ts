@@ -1,3 +1,10 @@
+import {
+  clearAuthSession,
+  loadAuthTokens,
+  persistAuthTokens,
+  type StoredAuthTokens
+} from "./authSession";
+
 type ApiEnvelope<T> = {
   code: string;
   message: string;
@@ -6,9 +13,6 @@ type ApiEnvelope<T> = {
   timestamp?: string;
 };
 
-const TOKEN_STORAGE_KEY = "linzhi_auth_tokens";
-const USER_STORAGE_KEY = "linzhi_current_user";
-const TOKEN_CHANGED_EVENT = "linzhi_auth_tokens_changed";
 const TOKEN_EXPIRY_SKEW_MS = 5_000;
 const AUTH_REFRESH_PATH = "/api/v1/auth/token/refresh";
 
@@ -26,6 +30,7 @@ export type ApiFetchOptions = {
   accessToken?: string | null;
   authMode?: AuthMode;
   signal?: AbortSignal;
+  keepalive?: boolean;
 };
 
 export class ApiError extends Error {
@@ -39,12 +44,6 @@ export class ApiError extends Error {
   }
 }
 
-type StoredTokens = {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-};
-
 type RefreshTokenPayload = {
   accessToken: string;
   accessExpiresAt?: string;
@@ -53,7 +52,7 @@ type RefreshTokenPayload = {
   tokenType?: string;
 };
 
-let refreshPromise: Promise<StoredTokens> | null = null;
+let refreshPromise: Promise<StoredAuthTokens> | null = null;
 
 const parseInstantToMillis = (value: string | undefined): number => {
   if (!value) {
@@ -67,47 +66,8 @@ const parseInstantToMillis = (value: string | undefined): number => {
   return Number.isNaN(timestamp) ? Date.now() + 10 * 60 * 1000 : timestamp;
 };
 
-const readStoredTokens = (): StoredTokens | null => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<StoredTokens>;
-    if (!parsed.accessToken || !parsed.refreshToken || !parsed.expiresAt) {
-      return null;
-    }
-    return {
-      accessToken: parsed.accessToken,
-      refreshToken: parsed.refreshToken,
-      expiresAt: parsed.expiresAt
-    };
-  } catch {
-    return null;
-  }
-};
-
-const persistTokens = (tokens: StoredTokens | null) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  if (!tokens) {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    window.dispatchEvent(new Event(TOKEN_CHANGED_EVENT));
-    return;
-  }
-  localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
-  window.dispatchEvent(new Event(TOKEN_CHANGED_EVENT));
-};
-
 const readStoredAccessToken = (): string | null => {
-  const tokens = readStoredTokens();
+  const tokens = loadAuthTokens();
   if (!tokens) {
     return null;
   }
@@ -117,13 +77,13 @@ const readStoredAccessToken = (): string | null => {
   return tokens.accessToken;
 };
 
-const refreshStoredTokens = async (baseUrl: string): Promise<StoredTokens> => {
+const refreshStoredTokens = async (baseUrl: string): Promise<StoredAuthTokens> => {
   if (refreshPromise) {
     return refreshPromise;
   }
 
   refreshPromise = (async () => {
-    const stored = readStoredTokens();
+    const stored = loadAuthTokens();
     if (!stored?.refreshToken) {
       throw new ApiError(401, "登录已过期，请重新登录", null);
     }
@@ -147,7 +107,7 @@ const refreshStoredTokens = async (baseUrl: string): Promise<StoredTokens> => {
     }
 
     if (!response.ok) {
-      persistTokens(null);
+      clearAuthSession();
       const message = typeof parsedBody === "object" && parsedBody !== null && "message" in parsedBody
         ? String((parsedBody as { message?: unknown }).message ?? "登录已过期，请重新登录")
         : rawText || "登录已过期，请重新登录";
@@ -161,12 +121,12 @@ const refreshStoredTokens = async (baseUrl: string): Promise<StoredTokens> => {
       ? (parsedBody as ApiEnvelope<RefreshTokenPayload>).data
       : parsedBody as RefreshTokenPayload;
 
-    const nextTokens: StoredTokens = {
+    const nextTokens: StoredAuthTokens = {
       accessToken: payload.accessToken,
       refreshToken: payload.refreshToken,
       expiresAt: parseInstantToMillis(payload.accessExpiresAt)
     };
-    persistTokens(nextTokens);
+    persistAuthTokens(nextTokens);
     return nextTokens;
   })().finally(() => {
     refreshPromise = null;
@@ -198,7 +158,7 @@ export async function refreshAccessTokenForRequest(): Promise<string> {
 
 export async function apiFetch<TResponse>(path: string, options: ApiFetchOptions = {}): Promise<TResponse> {
   const baseUrl = getApiBaseUrl();
-  const { method = "GET", headers = {}, body, accessToken, authMode = "required", signal } = options;
+  const { method = "GET", headers = {}, body, accessToken, authMode = "required", signal, keepalive } = options;
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   const url = baseUrl ? `${baseUrl}${path}` : path;
 
@@ -224,6 +184,7 @@ export async function apiFetch<TResponse>(path: string, options: ApiFetchOptions
       headers: mergedHeaders,
       body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
       signal,
+      keepalive,
       credentials: "include"
     });
 
@@ -259,8 +220,13 @@ export async function apiFetch<TResponse>(path: string, options: ApiFetchOptions
     }
   }
   if (authMode === "required" && canUseStoredRefresh && result.response.status === 401) {
-    const refreshed = await refreshStoredTokens(baseUrl);
-    result = await send(refreshed.accessToken);
+    try {
+      const refreshed = await refreshStoredTokens(baseUrl);
+      result = await send(refreshed.accessToken);
+    } catch (error) {
+      clearAuthSession();
+      throw error;
+    }
   }
 
   if (!result.response.ok) {

@@ -43,7 +43,8 @@ export const authService = {
       method: "POST",
       body: payload,
       accessToken: null,
-      authMode: "none"
+      authMode: "none",
+      keepalive: true
     }),
 
   fetchCurrentUser: async (accessToken: string) => {
@@ -64,13 +65,15 @@ export const authService = {
     apiFetch<RefreshResponse>(`${AUTH_PREFIX}/token/refresh`, {
       method: "POST",
       body: { refreshToken },
-      accessToken: null
+      accessToken: null,
+      authMode: "none"
     }),
 
   resetPassword: (payload: PasswordResetRequest) =>
     apiFetch<ActionResult>(`${AUTH_PREFIX}/password/reset`, {
       method: "POST",
       body: payload,
-      accessToken: null
+      accessToken: null,
+      authMode: "none"
     })
 };
